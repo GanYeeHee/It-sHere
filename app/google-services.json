@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "359760237034",
+    "project_id": "it-shere-a78f3",
+    "storage_bucket": "it-shere-a78f3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359760237034:android:27f906936bd84d72356293",
+        "android_client_info": {
+          "package_name": "com.example.itshere"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVTIWc8b3Ygn-Xd2BaZiWVSMwk63W9N8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
