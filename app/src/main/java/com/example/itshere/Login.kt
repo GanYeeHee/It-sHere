@@ -41,7 +41,6 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // 背景圖放在 Box 的最底層
         Image(
             painter = painterResource(id = R.drawable.img),
             contentDescription = "background",
@@ -49,14 +48,12 @@ fun LoginScreen(
             contentScale = ContentScale.Crop
         )
 
-        // 然後是內容
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            // 加載指示器
             if (state.isLoading) {
                 Box(
                     modifier = Modifier
@@ -316,6 +313,7 @@ fun LoginScreen(
         )
     }
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
