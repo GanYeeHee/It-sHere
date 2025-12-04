@@ -1,5 +1,5 @@
 // LoginViewModel.kt
-package com.example.itshere
+package com.example.itshere.ViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

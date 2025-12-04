@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.itshere.ViewModel.SignUpViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -156,7 +157,10 @@ fun SignUpScreen(
                 )
                 OutlinedTextField(
                     value = state.phone,
-                    onValueChange = viewModel::onPhoneChange,
+                    onValueChange = { newValue ->
+                        val filteredValue = newValue.filter { it.isDigit() }
+                        viewModel.onPhoneChange(filteredValue)
+                    },
                     placeholder = { Text("+60 123456789", color = Color.Gray) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -171,7 +175,10 @@ fun SignUpScreen(
                     ),
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        autoCorrect = false
+                    ),
                     isError = state.phoneError != null,
                     enabled = !state.isLoading
                 )
