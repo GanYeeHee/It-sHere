@@ -40,7 +40,7 @@ fun AppNavigation() {
         }
 
         composable("home") {
-
+            HomePage()
         }
     }
 }
