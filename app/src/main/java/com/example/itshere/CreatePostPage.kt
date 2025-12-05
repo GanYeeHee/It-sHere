@@ -32,18 +32,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.itshere.Data.ImageItem
 import java.text.SimpleDateFormat
 import java.util.*
 
 enum class PostType {
     LOST, FOUND
 }
-
-data class ImageItem(
-    val id: String = UUID.randomUUID().toString(),
-    val uri: String,
-    val isLocal: Boolean = true
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
