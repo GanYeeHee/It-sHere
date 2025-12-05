@@ -43,6 +43,17 @@ android {
 
 dependencies {
 
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("com.github.bumptech.glide:compose:1.0.0-alpha.1")
+
+    implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
+
+    implementation("androidx.camera:camera-camera2:1.3.0")
+    implementation("androidx.camera:camera-lifecycle:1.3.0")
+    implementation("androidx.camera:camera-view:1.3.0")
+
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
     implementation("com.google.firebase:firebase-firestore-ktx:24.9.1")
 
     // Firebase
