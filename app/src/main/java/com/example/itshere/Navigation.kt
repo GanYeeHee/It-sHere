@@ -1,9 +1,11 @@
 package com.example.itshere
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 @Composable
 fun AppNavigation() {
@@ -28,19 +30,53 @@ fun AppNavigation() {
 
         composable("signup") {
             SignUpScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onSignUpSuccess = {
-                navController.navigate("home") {
-                    popUpTo("signup") { inclusive = true }
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSignUpSuccess = {
+                    navController.navigate("home") {
+                        popUpTo("signup") { inclusive = true }
+                    }
                 }
-            }
-        )
+            )
         }
 
         composable("home") {
-            HomePage()
+            HomePage(
+                onCreatePostClick = {
+                    navController.navigate("create_post/found")
+                }
+            )
+        }
+
+        composable(
+            route = "create_post/{postType}",
+            arguments = listOf(
+                navArgument("postType") {
+                    type = NavType.StringType
+                    defaultValue = "found"
+                }
+            )
+        ) { backStackEntry ->
+            val postTypeString = backStackEntry.arguments?.getString("postType") ?: "found"
+            val postType = if (postTypeString == "lost") PostType.LOST else PostType.FOUND
+
+            CreatePostPage(
+                postType = postType,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onDraftClick = {
+                    // TODO: 儲存草稿
+                    navController.popBackStack()
+                },
+                onPostClick = {
+                    // TODO: 提交帖子
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
