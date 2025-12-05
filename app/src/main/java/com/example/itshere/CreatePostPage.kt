@@ -1,43 +1,57 @@
 package com.example.itshere
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
-import java.text.SimpleDateFormat
-import java.util.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
+import java.text.SimpleDateFormat
+import java.util.*
 
 enum class PostType {
     LOST, FOUND
 }
 
+// 图片项数据类
+data class ImageItem(
+    val id: String = UUID.randomUUID().toString(),
+    val uri: String,
+    val isLocal: Boolean = true
+)
+
+// 主函数
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePostPage(
     postType: PostType = PostType.FOUND,
     onBackClick: () -> Unit = {},
-    onDraftClick: () -> Unit = {},
-    onPostClick: () -> Unit = {}
+    onDraftClick: (CreatePostData) -> Unit = { _ -> }, // 保存草稿时传递数据
+    onPostClick: (CreatePostData) -> Unit = { _ -> }   // 发布时传递数据
 ) {
+    // 表单状态
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedPostType by remember { mutableStateOf(postType) }
@@ -46,13 +60,49 @@ fun CreatePostPage(
     var selectedCategory by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // Questions for Found type
+    // 图片状态
+    var selectedImages by remember { mutableStateOf<List<ImageItem>>(emptyList()) }
+
+    // 问题状态
     var question1 by remember { mutableStateOf("") }
     var answer1 by remember { mutableStateOf("") }
     var question2 by remember { mutableStateOf("") }
     var answer2 by remember { mutableStateOf("") }
     var question3 by remember { mutableStateOf("") }
     var answer3 by remember { mutableStateOf("") }
+
+    // 图片选择器
+    val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
+        onResult = { uris ->
+            val newImages = uris.map { uri ->
+                ImageItem(uri = uri.toString())
+            }
+            selectedImages = selectedImages + newImages
+        }
+    )
+
+    // 创建数据对象
+    fun createPostData(): CreatePostData {
+        return CreatePostData(
+            title = title,
+            description = description,
+            postType = selectedPostType,
+            phone = phone,
+            date = date,
+            category = selectedCategory,
+            images = selectedImages,
+            questions = if (selectedPostType == PostType.FOUND) {
+                listOf(
+                    QuestionAnswer(question1, answer1),
+                    QuestionAnswer(question2, answer2),
+                    QuestionAnswer(question3, answer3)
+                )
+            } else {
+                emptyList()
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -72,7 +122,7 @@ fun CreatePostPage(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onDraftClick) {
+                    TextButton(onClick = { onDraftClick(createPostData()) }) {
                         Text(
                             text = "Draft",
                             color = MaterialTheme.colorScheme.primary
@@ -94,52 +144,22 @@ fun CreatePostPage(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Image Upload Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Image preview box
-                Surface(
-                    modifier = Modifier.size(80.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFE3F2FD)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = "Image",
-                            tint = Color(0xFF2196F3),
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
+            // 图片上传区域
+            ImageUploadSection(
+                selectedImages = selectedImages,
+                onAddImageClick = {
+                    multiplePhotoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onRemoveImage = { imageId ->
+                    selectedImages = selectedImages.filter { it.id != imageId }
                 }
-
-                // Camera button
-                Surface(
-                    modifier = Modifier.size(80.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF5F5F5),
-                    onClick = { /* TODO: Open camera */ }
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Camera",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-            }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Title Section
+            // 标题区域
             Text(
                 text = "Title",
                 style = MaterialTheme.typography.titleMedium,
@@ -160,7 +180,31 @@ fun CreatePostPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Post Type
+            // 描述区域（可选添加）
+            Text(
+                text = "Description",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                placeholder = { Text("Enter description...") },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.LightGray
+                ),
+                maxLines = 4
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 帖子类型
             Text(
                 text = "Post Type:",
                 style = MaterialTheme.typography.bodyMedium,
@@ -184,7 +228,7 @@ fun CreatePostPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Questions Section (only for FOUND type)
+            // 问题区域（仅限 Found 类型）
             if (selectedPostType == PostType.FOUND) {
                 Text(
                     text = "Questions for verify the item:",
@@ -193,7 +237,7 @@ fun CreatePostPage(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Question 1
+                // 问题1
                 QuestionAnswerField(
                     questionNumber = "1.",
                     question = question1,
@@ -204,7 +248,7 @@ fun CreatePostPage(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Question 2
+                // 问题2
                 QuestionAnswerField(
                     questionNumber = "2.",
                     question = question2,
@@ -215,7 +259,7 @@ fun CreatePostPage(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Question 3
+                // 问题3
                 QuestionAnswerField(
                     questionNumber = "3.",
                     question = question3,
@@ -227,7 +271,7 @@ fun CreatePostPage(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Phone (only for LOST type)
+            // 电话区域（仅限 Lost 类型）
             if (selectedPostType == PostType.LOST) {
                 Text(
                     text = "Phone:",
@@ -256,7 +300,7 @@ fun CreatePostPage(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Date
+            // 日期选择
             Text(
                 text = "Date:",
                 style = MaterialTheme.typography.bodyMedium,
@@ -284,7 +328,7 @@ fun CreatePostPage(
                 )
             )
 
-            // Date Picker Dialog
+            // 日期选择器对话框
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState()
 
@@ -294,10 +338,8 @@ fun CreatePostPage(
                         TextButton(
                             onClick = {
                                 datePickerState.selectedDateMillis?.let { millis ->
-                                    val calendar = Calendar.getInstance()
-                                    calendar.timeInMillis = millis
                                     val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                    date = formatter.format(calendar.time)
+                                    date = formatter.format(Date(millis))
                                 }
                                 showDatePicker = false
                             }
@@ -317,7 +359,7 @@ fun CreatePostPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Category
+            // 分类选择
             Text(
                 text = "Category:",
                 style = MaterialTheme.typography.bodyMedium,
@@ -325,7 +367,7 @@ fun CreatePostPage(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Category chips - First row
+            // 分类芯片 - 第一行
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -345,34 +387,45 @@ fun CreatePostPage(
                     isSelected = selectedCategory == "Cards",
                     onClick = { selectedCategory = "Cards" }
                 )
-                CategoryChip(
-                    text = "accessories",
-                    isSelected = selectedCategory == "accessories",
-                    onClick = { selectedCategory = "accessories" }
-                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Category chips - Second row
-            CategoryChip(
-                text = "Others",
-                isSelected = selectedCategory == "Others",
-                onClick = { selectedCategory = "Others" }
-            )
+            // 分类芯片 - 第二行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CategoryChip(
+                    text = "Accessories",
+                    isSelected = selectedCategory == "Accessories",
+                    onClick = { selectedCategory = "Accessories" }
+                )
+                CategoryChip(
+                    text = "Documents",
+                    isSelected = selectedCategory == "Documents",
+                    onClick = { selectedCategory = "Documents" }
+                )
+                CategoryChip(
+                    text = "Others",
+                    isSelected = selectedCategory == "Others",
+                    onClick = { selectedCategory = "Others" }
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Post Button
+            // 发布按钮
             Button(
-                onClick = onPostClick,
+                onClick = { onPostClick(createPostData()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF824DFF)
-                )
+                ),
+                enabled = title.isNotBlank() && date.isNotBlank() && selectedCategory.isNotBlank()
             ) {
                 Text(
                     text = "Post",
@@ -386,6 +439,151 @@ fun CreatePostPage(
     }
 }
 
+// 图片上传区域组件
+@Composable
+fun ImageUploadSection(
+    selectedImages: List<ImageItem>,
+    onAddImageClick: () -> Unit,
+    onRemoveImage: (String) -> Unit,
+    maxImages: Int = 5
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Upload Images",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            // 显示已选择的图片
+            itemsIndexed(selectedImages) { index, imageItem ->
+                ImagePreviewItem(
+                    imageItem = imageItem,
+                    onRemoveClick = { onRemoveImage(imageItem.id) }
+                )
+            }
+
+            // 添加图片按钮（如果没有达到最大数量）
+            if (selectedImages.size < maxImages) {
+                item {
+                    AddImageButton(
+                        onClick = onAddImageClick,
+                        remainingCount = maxImages - selectedImages.size
+                    )
+                }
+            }
+        }
+
+        // 图片数量提示
+        if (selectedImages.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${selectedImages.size}/$maxImages images selected",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+// 图片预览项
+@Composable
+fun ImagePreviewItem(
+    imageItem: ImageItem,
+    onRemoveClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier.size(100.dp)
+    ) {
+        // 图片显示
+        Image(
+            painter = rememberAsyncImagePainter(model = imageItem.uri),
+            contentDescription = "Selected image",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop
+        )
+
+        // 删除按钮
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(6.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable { onRemoveClick() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove image",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .align(Alignment.Center)
+                )
+            }
+        }
+    }
+}
+
+// 添加图片按钮
+@Composable
+fun AddImageButton(
+    onClick: () -> Unit,
+    remainingCount: Int
+) {
+    Surface(
+        modifier = Modifier.size(100.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFFF5F5F5),
+        border = BorderStroke(1.dp, Color.LightGray),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.AddPhotoAlternate,
+                contentDescription = "Add image",
+                tint = Color.Gray,
+                modifier = Modifier.size(32.dp)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Add Photo",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = "$remainingCount left",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.LightGray
+            )
+        }
+    }
+}
+
+// 帖子类型芯片
 @Composable
 fun PostTypeChip(
     text: String,
@@ -396,7 +594,8 @@ fun PostTypeChip(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = if (isSelected) Color(0xFFFFCDD2) else Color.Transparent,
-        border = if (!isSelected) BorderStroke(1.dp, Color.LightGray) else null
+        border = if (!isSelected) BorderStroke(1.dp, Color.LightGray) else null,
+        modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             text = text,
@@ -407,6 +606,7 @@ fun PostTypeChip(
     }
 }
 
+// 分类芯片
 @Composable
 fun CategoryChip(
     text: String,
@@ -417,7 +617,8 @@ fun CategoryChip(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = if (isSelected) Color(0xFFFFCDD2) else Color(0xFFF5F5F5),
-        border = if (!isSelected) BorderStroke(1.dp, Color.LightGray) else null
+        border = if (!isSelected) BorderStroke(1.dp, Color.LightGray) else null,
+        modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             text = text,
@@ -428,6 +629,7 @@ fun CategoryChip(
     }
 }
 
+// 问题和答案字段
 @Composable
 fun QuestionAnswerField(
     questionNumber: String,
@@ -473,7 +675,25 @@ fun QuestionAnswerField(
     }
 }
 
-@Preview(showBackground = true)
+// 数据模型类
+data class CreatePostData(
+    val title: String = "",
+    val description: String = "",
+    val postType: PostType = PostType.FOUND,
+    val phone: String = "",
+    val date: String = "",
+    val category: String = "",
+    val images: List<ImageItem> = emptyList(),
+    val questions: List<QuestionAnswer> = emptyList()
+)
+
+data class QuestionAnswer(
+    val question: String = "",
+    val answer: String = ""
+)
+
+// 预览
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CreatePostFoundPreview() {
     MaterialTheme {
@@ -481,12 +701,16 @@ fun CreatePostFoundPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            CreatePostPage(postType = PostType.FOUND)
+            CreatePostPage(
+                postType = PostType.FOUND,
+                onDraftClick = { println("Draft saved: $it") },
+                onPostClick = { println("Post created: $it") }
+            )
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CreatePostLostPreview() {
     MaterialTheme {
@@ -494,7 +718,25 @@ fun CreatePostLostPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            CreatePostPage(postType = PostType.LOST)
+            CreatePostPage(
+                postType = PostType.LOST,
+                onDraftClick = { println("Draft saved: $it") },
+                onPostClick = { println("Post created: $it") }
+            )
+        }
+    }
+}
+
+// 如果需要显示示例图片，可以使用这个预览
+@Preview(showBackground = true)
+@Composable
+fun ImagePreviewItemPreview() {
+    MaterialTheme {
+        Box(modifier = Modifier.background(Color.White)) {
+            AddImageButton(
+                onClick = {},
+                remainingCount = 5
+            )
         }
     }
 }
