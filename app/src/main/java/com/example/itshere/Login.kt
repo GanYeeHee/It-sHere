@@ -245,7 +245,7 @@ fun LoginScreen(
                 TextButton(
                     onClick = {
                         showForgotPasswordDialog = true
-                        resetEmail = state.email // 預填當前的 email
+                        resetEmail = state.email
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {

@@ -1,5 +1,6 @@
 package com.example.itshere
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,28 +27,34 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.ImageItem
+import com.example.itshere.Data.PostType
+import com.example.itshere.Data.QuestionAnswer
 import com.example.itshere.ViewModel.PostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import com.example.itshere.Data.PostType
-import com.example.itshere.Data.QuestionAnswer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePostPage(
     postType: PostType = PostType.FOUND,
-    viewModel: PostViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onPostSuccess: () -> Unit = {}
+    onPostSuccess: () -> Unit = {},
+    isDraftMode: Boolean = false
 ) {
+    val context = LocalContext.current
+    val viewModel: PostViewModel = remember { PostViewModel(context) }
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedPostType by remember { mutableStateOf(postType) }
@@ -67,6 +74,7 @@ fun CreatePostPage(
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showSaveAsDraftDialog by remember { mutableStateOf(false) }
 
     val state by viewModel.state.collectAsState()
 
@@ -95,7 +103,7 @@ fun CreatePostPage(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Create Post",
+                        text = if (isDraftMode) "Save Draft" else "Create Post",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -110,37 +118,23 @@ fun CreatePostPage(
                     }
                 },
                 actions = {
-                    TextButton(
-                        onClick = {
-                            viewModel.saveDraft(
-                                title = title,
-                                description = description,
-                                postType = selectedPostType,
-                                phone = phone,
-                                date = date,
-                                category = selectedCategory,
-                                images = selectedImages,
-                                questions = listOf(
-                                    QuestionAnswer(question1, answer1),
-                                    QuestionAnswer(question2, answer2),
-                                    QuestionAnswer(question3, answer3)
-                                ),
-                                onSuccess = {
-                                    errorMessage = "Draft saved successfully"
-                                    showSuccessDialog = true
-                                },
-                                onError = { error ->
-                                    errorMessage = error
+                    if (!isDraftMode) {
+                        TextButton(
+                            onClick = {
+                                if (title.isNotBlank() || description.isNotBlank() || selectedImages.isNotEmpty()) {
+                                    showSaveAsDraftDialog = true
+                                } else {
+                                    errorMessage = "No content to save as draft"
                                     showErrorDialog = true
                                 }
+                            }
+                        ) {
+                            Text(
+                                text = "Save Draft",
+                                color = Color(0xFF824DFF),
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-                    ) {
-                        Text(
-                            text = "Draft",
-                            color = Color(0xFF824DFF),
-                            fontWeight = FontWeight.SemiBold
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -157,7 +151,17 @@ fun CreatePostPage(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                if (state.isLoading && state.uploadProgress > 0f) {
+                    LinearProgressIndicator(
+                        progress = state.uploadProgress,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF824DFF),
+                        trackColor = Color(0xFFE0E0E0)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 ImageUploadSection(
                     selectedImages = selectedImages,
@@ -316,7 +320,7 @@ fun CreatePostPage(
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CalendarToday,
+                                    imageVector = Icons.Default.DateRange,
                                     contentDescription = "Select Date",
                                     tint = Color(0xFF999999),
                                     modifier = Modifier.size(18.dp)
@@ -369,17 +373,21 @@ fun CreatePostPage(
                         "Accessories", "Documents", "Others"
                     )
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        categories.forEach { category ->
-                            CategoryChip(
-                                text = category,
-                                isSelected = selectedCategory == category,
-                                onClick = { selectedCategory = category }
-                            )
+                        WrapContentRow(
+                            horizontalSpacing = 8.dp,
+                            verticalSpacing = 8.dp
+                        ) {
+                            categories.forEach { category ->
+                                CategoryChip(
+                                    text = category,
+                                    isSelected = selectedCategory == category,
+                                    onClick = { selectedCategory = category }
+                                )
+                            }
                         }
                     }
 
@@ -387,10 +395,9 @@ fun CreatePostPage(
 
                     Button(
                         onClick = {
-                            // 添加日誌調試
                             android.util.Log.d(
                                 "CreatePostPage",
-                                "POST button clicked. canPost=$canPost, isLoading=${state.isLoading}"
+                                "Button clicked. isDraftMode=$isDraftMode, canPost=$canPost"
                             )
 
                             viewModel.createPost(
@@ -408,9 +415,14 @@ fun CreatePostPage(
                                         QuestionAnswer(question3, answer3)
                                     )
                                 } else emptyList(),
+                                isDraft = isDraftMode,
                                 onSuccess = {
-                                    // 直接導航回主頁
-                                    onPostSuccess()
+                                    if (isDraftMode) {
+                                        errorMessage = "Draft saved locally"
+                                        showSuccessDialog = true
+                                    } else {
+                                        onPostSuccess()
+                                    }
                                 },
                                 onError = { error ->
                                     errorMessage = error
@@ -424,11 +436,13 @@ fun CreatePostPage(
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF824DFF),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFCCCCCC), // 添加禁用狀態顏色
-                            disabledContentColor = Color(0xFF666666)
+                            disabledContainerColor = Color(0xFFCCCCCC)
                         ),
-                        enabled = canPost && !state.isLoading
+                        enabled = if (isDraftMode) {
+                            title.isNotBlank() || description.isNotBlank() || selectedImages.isNotEmpty()
+                        } else {
+                            canPost && !state.isLoading
+                        }
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
@@ -438,17 +452,18 @@ fun CreatePostPage(
                             )
                         } else {
                             Text(
-                                text = if (canPost) "Post" else "Fill Required Fields",
+                                text = if (isDraftMode) "Save Draft Locally" else
+                                    if (canPost) "Post" else "Fill Required Fields",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp
+                                fontSize = 16.sp,
+                                color = if (canPost || isDraftMode) Color.White else Color(0xFF666666)
                             )
                         }
                     }
                 }
             }
 
-            // Loading overlay
             if (state.isLoading) {
                 Box(
                     modifier = Modifier
@@ -456,16 +471,90 @@ fun CreatePostPage(
                         .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF824DFF))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF824DFF))
+                        if (state.uploadProgress > 0f) {
+                            Text(
+                                text = "Uploading... ${(state.uploadProgress * 100).toInt()}%",
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Success Dialog
+    if (showSaveAsDraftDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveAsDraftDialog = false },
+            title = {
+                Text(
+                    "Save as Draft?",
+                    color = Color(0xFF824DFF),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your post will be saved locally. You can publish it later.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSaveAsDraftDialog = false
+                        viewModel.saveDraft(
+                            title = title,
+                            description = description,
+                            postType = selectedPostType,
+                            phone = phone,
+                            date = date,
+                            category = selectedCategory,
+                            images = selectedImages,
+                            questions = if (selectedPostType == PostType.FOUND) {
+                                listOf(
+                                    QuestionAnswer(question1, answer1),
+                                    QuestionAnswer(question2, answer2),
+                                    QuestionAnswer(question3, answer3)
+                                )
+                            } else emptyList(),
+                            onSuccess = {
+                                errorMessage = "Draft saved locally"
+                                showSuccessDialog = true
+                            },
+                            onError = { error ->
+                                errorMessage = error
+                                showErrorDialog = true
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF824DFF)
+                    )
+                ) {
+                    Text("Save Draft")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showSaveAsDraftDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { /* Don't dismiss */ },
+            onDismissRequest = {
+                showSuccessDialog = false
+                if (!isDraftMode) {
+                    onPostSuccess()
+                }
+            },
             title = {
                 Text(
                     "Success!",
@@ -474,13 +563,15 @@ fun CreatePostPage(
                 )
             },
             text = {
-                Text("Your post has been created successfully!")
+                Text(errorMessage)
             },
             confirmButton = {
                 Button(
                     onClick = {
                         showSuccessDialog = false
-                        onPostSuccess()
+                        if (!isDraftMode) {
+                            onPostSuccess()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF824DFF)
@@ -492,7 +583,6 @@ fun CreatePostPage(
         )
     }
 
-    // Error Dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
@@ -517,6 +607,57 @@ fun CreatePostPage(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun WrapContentRow(
+    modifier: Modifier = Modifier,
+    horizontalSpacing: Dp = 0.dp,
+    verticalSpacing: Dp = 0.dp,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        content = content,
+        modifier = modifier
+    ) { measurables, constraints ->
+        var currentRowWidth = 0
+        var currentRowHeight = 0
+        var totalHeight = 0
+        var xPositions = mutableListOf<Int>()
+        var yPositions = mutableListOf<Int>()
+
+        val placeables = measurables.map { measurable ->
+            measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        }
+
+        placeables.forEachIndexed { index, placeable ->
+            if (currentRowWidth + placeable.width > constraints.maxWidth) {
+                totalHeight += currentRowHeight + verticalSpacing.roundToPx()
+                currentRowWidth = 0
+                currentRowHeight = 0
+            }
+
+            xPositions.add(currentRowWidth)
+            yPositions.add(totalHeight)
+
+            currentRowWidth += placeable.width + horizontalSpacing.roundToPx()
+            currentRowHeight = maxOf(currentRowHeight, placeable.height)
+        }
+
+        totalHeight += currentRowHeight
+
+        layout(
+            width = constraints.maxWidth,
+            height = totalHeight
+        ) {
+            placeables.forEachIndexed { index, placeable ->
+                placeable.place(
+                    x = xPositions[index],
+                    y = yPositions[index]
+                )
+            }
+        }
     }
 }
 
