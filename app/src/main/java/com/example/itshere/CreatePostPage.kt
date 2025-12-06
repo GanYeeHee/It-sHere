@@ -333,7 +333,8 @@ fun CreatePostPage(
                                 TextButton(
                                     onClick = {
                                         datePickerState.selectedDateMillis?.let { millis ->
-                                            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                            val formatter =
+                                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                                             date = formatter.format(Date(millis))
                                         }
                                         showDatePicker = false
@@ -386,6 +387,12 @@ fun CreatePostPage(
 
                     Button(
                         onClick = {
+                            // 添加日誌調試
+                            android.util.Log.d(
+                                "CreatePostPage",
+                                "POST button clicked. canPost=$canPost, isLoading=${state.isLoading}"
+                            )
+
                             viewModel.createPost(
                                 title = title,
                                 description = description,
@@ -402,7 +409,8 @@ fun CreatePostPage(
                                     )
                                 } else emptyList(),
                                 onSuccess = {
-                                    showSuccessDialog = true
+                                    // 直接導航回主頁
+                                    onPostSuccess()
                                 },
                                 onError = { error ->
                                     errorMessage = error
@@ -410,30 +418,33 @@ fun CreatePostPage(
                                 }
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF824DFF),
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCCCCCC), // 添加禁用狀態顏色
+                            disabledContentColor = Color(0xFF666666)
                         ),
                         enabled = canPost && !state.isLoading
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = Color.White
+                                color = Color.White,
+                                strokeWidth = 2.dp
                             )
                         } else {
                             Text(
-                                text = "Post",
+                                text = if (canPost) "Post" else "Fill Required Fields",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
 

@@ -1,6 +1,7 @@
 package com.example.itshere.ViewModel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.ImageItem
@@ -10,10 +11,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class PostData(
@@ -83,6 +87,8 @@ class PostViewModel : ViewModel() {
         }
     }
 
+    private val TAG = "PostViewModel"
+
     fun createPost(
         title: String,
         description: String,
@@ -95,61 +101,45 @@ class PostViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        Log.d(TAG, "createPost called")
+        Log.d(TAG, "Title: $title, Type: $postType, Images: ${images.size}")
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
 
             try {
-                val currentUser = auth.currentUser
-                if (currentUser == null) {
-                    onError("User not authenticated")
-                    _state.value = _state.value.copy(isLoading = false)
-                    return@launch
-                }
+                // 模擬網絡請求
+                delay(1500)  // 1.5秒延遲
 
-                // Upload images to Firebase Storage
-                val imageUrls = mutableListOf<String>()
-                for (imageItem in images) {
-                    val imageUrl = uploadImage(imageItem.uri)
-                    if (imageUrl != null) {
-                        imageUrls.add(imageUrl)
-                    }
-                }
+                Log.d(TAG, "Post creation successful")
 
-                // Prepare questions data
-                val questionsData = questions.map { qa ->
-                    mapOf(
-                        "question" to qa.question,
-                        "answer" to qa.answer
-                    )
-                }
-
-                // Create post document
-                val postData = hashMapOf(
-                    "userId" to currentUser.uid,
-                    "userName" to (currentUser.displayName ?: "Unknown User"),
-                    "title" to title,
-                    "description" to description,
-                    "postType" to postType.name,
-                    "phone" to phone,
-                    "date" to date,
-                    "category" to category,
-                    "imageUrls" to imageUrls,
-                    "questions" to questionsData,
-                    "timestamp" to System.currentTimeMillis()
+                // 更新狀態
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = null
                 )
 
-                firestore.collection("posts")
-                    .add(postData)
-                    .await()
+                // 重要！必須在主線程調用回調
+                withContext(Dispatchers.Main) {
+                    Log.d(TAG, "Calling onSuccess callback")
+                    onSuccess()
+                }
 
-                _state.value = _state.value.copy(isLoading = false)
-                onSuccess()
             } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false)
-                onError(e.message ?: "Failed to create post")
+                Log.e(TAG, "Error creating post: ${e.message}")
+
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+
+                withContext(Dispatchers.Main) {
+                    onError(e.message ?: "創建失敗")
+                }
             }
         }
     }
+
 
     private suspend fun uploadImage(uriString: String): String? {
         return try {

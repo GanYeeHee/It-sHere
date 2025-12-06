@@ -72,9 +72,14 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onPostSuccess = {
-                    // 創建成功後返回首頁
+                    // 修復這裡：移除錯誤的 popUpTo 邏輯
                     navController.navigate("home") {
-                        popUpTo("home") { inclusive = true }
+                        // 清除創建頁面之前的堆疊，回到首頁
+                        popUpTo("home") {
+                            inclusive = false  // 關鍵修改：保留首頁頁面
+                        }
+                        // 防止多重實例
+                        launchSingleTop = true
                     }
                 }
             )
