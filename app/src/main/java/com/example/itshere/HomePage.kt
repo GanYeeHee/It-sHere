@@ -1,7 +1,5 @@
 package com.example.itshere
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -11,52 +9,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-
-data class Post(
-    val id: Int,
-    val userName: String,
-    val title: String,
-    val description: String,
-    val category: String,
-    val timeAgo: String,
-    val isFound: Boolean = false,
-    val imageRes: Int = 0
-)
-
-val samplePosts = List(5) { index ->
-    Post(
-        id = index,
-        userName = "User${index + 1}",
-        title = if (index % 2 == 0) "Lost" else "Found",
-        description = "Descriptions......",
-        category = when (index % 4) {
-            0 -> "Electronics"
-            1 -> "Documents"
-            2 -> "Clothing"
-            else -> "Other"
-        },
-        timeAgo = "${index + 1} days ago",
-        isFound = index % 2 != 0
-    )
-}
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.itshere.ViewModel.PostViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(
-    onCreatePostClick: () -> Unit = {}
+    viewModel: PostViewModel = viewModel(),
+    onCreatePostClick: () -> Unit = {},
+    onPostClick: (String) -> Unit = {}
 ) {
+    val state by viewModel.state.collectAsState()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -67,12 +46,15 @@ fun HomePage(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Name",
+                            text = currentUser?.displayName ?: "User",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         floatingActionButton = {
@@ -88,22 +70,79 @@ fun HomePage(
             }
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(samplePosts) { post ->
-                    PostCardGrid(post = post)
+            when {
+                state.isLoading && state.posts.isEmpty() -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFF7C4DFF)
+                    )
+                }
+                state.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Error: ${state.error}",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.loadPosts() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF7C4DFF)
+                            )
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                state.posts.isEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "No posts yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Be the first to create a post!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                else -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.posts) { post ->
+                            PostCardGrid(
+                                post = post,
+                                onFavoriteClick = { viewModel.toggleFavorite(post.id) },
+                                onClick = { onPostClick(post.id) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -112,8 +151,24 @@ fun HomePage(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PostCardGrid(post: Post) {
+fun PostCardGrid(
+    post: com.example.itshere.ViewModel.PostData,
+    onFavoriteClick: () -> Unit = {},
+    onClick: () -> Unit = {}
+) {
     var isFavorite by remember { mutableStateOf(false) }
+
+    // Calculate time ago
+    val timeAgo = remember(post.timestamp) {
+        val now = System.currentTimeMillis()
+        val diff = now - post.timestamp
+        when {
+            diff < 60000 -> "Just now"
+            diff < 3600000 -> "${diff / 60000}m ago"
+            diff < 86400000 -> "${diff / 3600000}h ago"
+            else -> "${diff / 86400000}d ago"
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -122,7 +177,7 @@ fun PostCardGrid(post: Post) {
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp),
-        onClick = {}
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -132,24 +187,35 @@ fun PostCardGrid(post: Post) {
                     .fillMaxWidth()
                     .height(120.dp)
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF87CEEB)
-                ) {}
+                // Display first image or placeholder
+                if (post.imageUrls.isNotEmpty()) {
+                    AsyncImage(
+                        model = post.imageUrls.first(),
+                        contentDescription = "Post image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color(0xFF87CEEB)
+                    ) {}
+                }
 
+                // Post type badge
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp),
-                    color = if (post.isFound) Color(0xFFE1BEE7) else Color(0xFFBBDEFB),
+                    color = if (post.postType == "FOUND") Color(0xFFE1BEE7) else Color(0xFFBBDEFB),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = post.title,
+                        text = post.postType,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = if (post.isFound) Color(0xFF6A1B9A) else Color(0xFF1976D2)
+                        color = if (post.postType == "FOUND") Color(0xFF6A1B9A) else Color(0xFF1976D2)
                     )
                 }
             }
@@ -160,11 +226,20 @@ fun PostCardGrid(post: Post) {
                     .padding(12.dp)
             ) {
                 Text(
-                    text = post.description,
+                    text = post.title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = post.category,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    fontSize = 12.sp
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -175,13 +250,16 @@ fun PostCardGrid(post: Post) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = post.timeAgo,
+                        text = timeAgo,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
 
                     IconButton(
-                        onClick = { isFavorite = !isFavorite },
+                        onClick = {
+                            isFavorite = !isFavorite
+                            onFavoriteClick()
+                        },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
@@ -221,14 +299,19 @@ fun PostCardGridPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             PostCardGrid(
-                post = Post(
-                    id = 1,
+                post = com.example.itshere.ViewModel.PostData(
+                    id = "1",
+                    userId = "user123",
                     userName = "JohnDoe",
-                    title = "Found",
-                    description = "Descriptions......",
-                    category = "Electronics",
-                    timeAgo = "5 days ago",
-                    isFound = true
+                    title = "Found iPhone 13 Pro",
+                    description = "Found near the library",
+                    postType = "FOUND",
+                    phone = "",
+                    date = "05/12/2024",
+                    category = "Electronic",
+                    imageUrls = emptyList(),
+                    questions = emptyList(),
+                    timestamp = System.currentTimeMillis() - 86400000 // 1 day ago
                 )
             )
         }

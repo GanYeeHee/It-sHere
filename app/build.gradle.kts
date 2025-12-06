@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
     id("com.google.gms.google-services")
 }
 
@@ -42,39 +41,27 @@ android {
 }
 
 dependencies {
+    // Firebase BoM (統一管理所有 Firebase 版本)
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
-    implementation("io.coil-kt:coil-compose:2.4.0")
-    implementation("com.github.bumptech.glide:compose:1.0.0-alpha.1")
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:21.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
+    // Image Loading (只保留 Coil)
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // Camera (如果需要的話)
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
 
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
-    implementation("com.google.firebase:firebase-firestore-ktx:24.9.1")
-
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-auth-ktx")
-
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
-    implementation("com.google.firebase:firebase-auth-ktx:22.1.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    // Add the dependency for the Firebase Authentication library
-    // When using the BoM, you don't specify versions in Firebase library dependencies
-    implementation("com.google.firebase:firebase-auth")
-
-    // Also add the dependency for the Google Play services library and specify its version
-    implementation("com.google.android.gms:play-services-auth:21.4.0")
-
-    // Firebase 
-    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
+    // Permissions (如果需要的話)
+    implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
 
     // Compose & Material
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
@@ -83,6 +70,7 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
+    // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -91,7 +79,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
 
     // Testing
     testImplementation(libs.junit)

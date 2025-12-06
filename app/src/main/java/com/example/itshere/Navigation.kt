@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.itshere.Data.PostType
 
 @Composable
 fun AppNavigation() {
@@ -45,6 +46,10 @@ fun AppNavigation() {
             HomePage(
                 onCreatePostClick = {
                     navController.navigate("create_post/found")
+                },
+                onPostClick = { postId ->
+                    // TODO: 導航到帖子詳情頁
+                    // navController.navigate("post_detail/$postId")
                 }
             )
         }
@@ -66,12 +71,8 @@ fun AppNavigation() {
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onDraftClick = {
-                    // TODO: 儲存草稿
-                    navController.popBackStack()
-                },
-                onPostClick = {
-                    // TODO: 提交帖子
+                onPostSuccess = {
+                    // 創建成功後返回首頁
                     navController.navigate("home") {
                         popUpTo("home") { inclusive = true }
                     }

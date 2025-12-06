@@ -31,22 +31,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.ImageItem
+import com.example.itshere.ViewModel.PostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-enum class PostType {
-    LOST, FOUND
-}
+import com.example.itshere.Data.PostType
+import com.example.itshere.Data.QuestionAnswer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePostPage(
     postType: PostType = PostType.FOUND,
+    viewModel: PostViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onDraftClick: (CreatePostData) -> Unit = { _ -> },
-    onPostClick: (CreatePostData) -> Unit = { _ -> }
+    onPostSuccess: () -> Unit = {}
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -55,7 +55,6 @@ fun CreatePostPage(
     var date by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
-
     var selectedImages by remember { mutableStateOf<List<ImageItem>>(emptyList()) }
 
     var question1 by remember { mutableStateOf("") }
@@ -64,6 +63,12 @@ fun CreatePostPage(
     var answer2 by remember { mutableStateOf("") }
     var question3 by remember { mutableStateOf("") }
     var answer3 by remember { mutableStateOf("") }
+
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+    val state by viewModel.state.collectAsState()
 
     val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -75,41 +80,14 @@ fun CreatePostPage(
         }
     )
 
-    fun createPostData(): CreatePostData {
-        return CreatePostData(
-            title = title,
-            description = description,
-            postType = selectedPostType,
-            phone = phone,
-            date = date,
-            category = selectedCategory,
-            images = selectedImages,
-            questions = if (selectedPostType == PostType.FOUND) {
-                listOf(
-                    QuestionAnswer(question1, answer1),
-                    QuestionAnswer(question2, answer2),
-                    QuestionAnswer(question3, answer3)
-                )
-            } else {
-                emptyList()
-            }
-        )
-    }
-
     val canPost = if (selectedPostType == PostType.LOST) {
-        title.isNotBlank()
-                && date.isNotBlank()
-                && selectedCategory.isNotBlank()
-                && phone.isNotBlank()
-                && selectedImages.isNotEmpty()
+        title.isNotBlank() && date.isNotBlank() && selectedCategory.isNotBlank() &&
+                phone.isNotBlank() && selectedImages.isNotEmpty()
     } else {
-        title.isNotBlank()
-                && date.isNotBlank()
-                && selectedCategory.isNotBlank()
-                && selectedImages.isNotEmpty()
-                && question1.isNotBlank() && answer1.isNotBlank()
-                && question2.isNotBlank() && answer2.isNotBlank()
-                && question3.isNotBlank() && answer3.isNotBlank()
+        title.isNotBlank() && date.isNotBlank() && selectedCategory.isNotBlank() &&
+                selectedImages.isNotEmpty() && question1.isNotBlank() && answer1.isNotBlank() &&
+                question2.isNotBlank() && answer2.isNotBlank() &&
+                question3.isNotBlank() && answer3.isNotBlank()
     }
 
     Scaffold(
@@ -132,7 +110,32 @@ fun CreatePostPage(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onDraftClick(createPostData()) }) {
+                    TextButton(
+                        onClick = {
+                            viewModel.saveDraft(
+                                title = title,
+                                description = description,
+                                postType = selectedPostType,
+                                phone = phone,
+                                date = date,
+                                category = selectedCategory,
+                                images = selectedImages,
+                                questions = listOf(
+                                    QuestionAnswer(question1, answer1),
+                                    QuestionAnswer(question2, answer2),
+                                    QuestionAnswer(question3, answer3)
+                                ),
+                                onSuccess = {
+                                    errorMessage = "Draft saved successfully"
+                                    showSuccessDialog = true
+                                },
+                                onError = { error ->
+                                    errorMessage = error
+                                    showErrorDialog = true
+                                }
+                            )
+                        }
+                    ) {
                         Text(
                             text = "Draft",
                             color = Color(0xFF824DFF),
@@ -146,142 +149,33 @@ fun CreatePostPage(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ImageUploadSection(
-                selectedImages = selectedImages,
-                onAddImageClick = {
-                    multiplePhotoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                onRemoveImage = { imageId ->
-                    selectedImages = selectedImages.filter { it.id != imageId }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "Title",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF666666),
-                    fontSize = 14.sp
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                CustomTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    placeholder = "Details for the post items...",
-                    modifier = Modifier.fillMaxWidth(),
-                    isTitle = true
+                ImageUploadSection(
+                    selectedImages = selectedImages,
+                    onAddImageClick = {
+                        multiplePhotoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    onRemoveImage = { imageId ->
+                        selectedImages = selectedImages.filter { it.id != imageId }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "Description",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF666666),
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                CustomTextArea(
-                    value = description,
-                    onValueChange = { description = it },
-                    placeholder = "Write a description...",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Post Type:",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF666666),
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    PostTypeChip(
-                        text = "Lost",
-                        isSelected = selectedPostType == PostType.LOST,
-                        onClick = { selectedPostType = PostType.LOST }
-                    )
-                    PostTypeChip(
-                        text = "Found",
-                        isSelected = selectedPostType == PostType.FOUND,
-                        onClick = { selectedPostType = PostType.FOUND }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (selectedPostType == PostType.FOUND) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        text = "Questions for verify the item:",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF666666),
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CompactQuestionAnswerField(
-                        questionNumber = "1.",
-                        question = question1,
-                        onQuestionChange = { question1 = it },
-                        answer = answer1,
-                        onAnswerChange = { answer1 = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    CompactQuestionAnswerField(
-                        questionNumber = "2.",
-                        question = question2,
-                        onQuestionChange = { question2 = it },
-                        answer = answer2,
-                        onAnswerChange = { answer2 = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    CompactQuestionAnswerField(
-                        questionNumber = "3.",
-                        question = question3,
-                        onQuestionChange = { question3 = it },
-                        answer = answer3,
-                        onAnswerChange = { answer3 = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-
-                if (selectedPostType == PostType.LOST) {
-                    Text(
-                        text = "Phone:",
+                        text = "Title",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF666666),
@@ -289,139 +183,333 @@ fun CreatePostPage(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     CustomTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        placeholder = "60112345678",
+                        value = title,
+                        onValueChange = { title = it },
+                        placeholder = "Details for the post items...",
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                tint = Color(0xFF999999),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        isTitle = true
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
-                }
 
-                Text(
-                    text = "Date:",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF666666),
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                CustomTextField(
-                    value = date,
-                    onValueChange = {},
-                    placeholder = "DD/MM/YYYY",
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { showDatePicker = true },
-                            modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    CustomTextArea(
+                        value = description,
+                        onValueChange = { description = it },
+                        placeholder = "Write a description...",
+                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Post Type:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PostTypeChip(
+                            text = "Lost",
+                            isSelected = selectedPostType == PostType.LOST,
+                            onClick = { selectedPostType = PostType.LOST }
+                        )
+                        PostTypeChip(
+                            text = "Found",
+                            isSelected = selectedPostType == PostType.FOUND,
+                            onClick = { selectedPostType = PostType.FOUND }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    if (selectedPostType == PostType.FOUND) {
+                        Text(
+                            text = "Questions for verify the item:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF666666),
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CompactQuestionAnswerField(
+                            questionNumber = "1.",
+                            question = question1,
+                            onQuestionChange = { question1 = it },
+                            answer = answer1,
+                            onAnswerChange = { answer1 = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        CompactQuestionAnswerField(
+                            questionNumber = "2.",
+                            question = question2,
+                            onQuestionChange = { question2 = it },
+                            answer = answer2,
+                            onAnswerChange = { answer2 = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        CompactQuestionAnswerField(
+                            questionNumber = "3.",
+                            question = question3,
+                            onQuestionChange = { question3 = it },
+                            answer = answer3,
+                            onAnswerChange = { answer3 = it }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
+                    if (selectedPostType == PostType.LOST) {
+                        Text(
+                            text = "Phone:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF666666),
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CustomTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            placeholder = "60112345678",
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color(0xFF999999),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
+                    Text(
+                        text = "Date:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    CustomTextField(
+                        value = date,
+                        onValueChange = {},
+                        placeholder = "DD/MM/YYYY",
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showDatePicker = true },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = "Select Date",
+                                    tint = Color(0xFF999999),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    if (showDatePicker) {
+                        val datePickerState = rememberDatePickerState()
+                        DatePickerDialog(
+                            onDismissRequest = { showDatePicker = false },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        datePickerState.selectedDateMillis?.let { millis ->
+                                            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                            date = formatter.format(Date(millis))
+                                        }
+                                        showDatePicker = false
+                                    }
+                                ) {
+                                    Text("OK")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDatePicker = false }) {
+                                    Text("Cancel")
+                                }
+                            }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarToday,
-                                contentDescription = "Select Date",
-                                tint = Color(0xFF999999),
-                                modifier = Modifier.size(18.dp)
+                            DatePicker(state = datePickerState)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Category:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val categories = listOf(
+                        "Electronic", "Clothes", "Cards",
+                        "Accessories", "Documents", "Others"
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.forEach { category ->
+                            CategoryChip(
+                                text = category,
+                                isSelected = selectedCategory == category,
+                                onClick = { selectedCategory = category }
                             )
                         }
                     }
-                )
 
-                if (showDatePicker) {
-                    val datePickerState = rememberDatePickerState()
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    DatePickerDialog(
-                        onDismissRequest = { showDatePicker = false },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    datePickerState.selectedDateMillis?.let { millis ->
-                                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                        date = formatter.format(Date(millis))
-                                    }
-                                    showDatePicker = false
+                    Button(
+                        onClick = {
+                            viewModel.createPost(
+                                title = title,
+                                description = description,
+                                postType = selectedPostType,
+                                phone = phone,
+                                date = date,
+                                category = selectedCategory,
+                                images = selectedImages,
+                                questions = if (selectedPostType == PostType.FOUND) {
+                                    listOf(
+                                        QuestionAnswer(question1, answer1),
+                                        QuestionAnswer(question2, answer2),
+                                        QuestionAnswer(question3, answer3)
+                                    )
+                                } else emptyList(),
+                                onSuccess = {
+                                    showSuccessDialog = true
+                                },
+                                onError = { error ->
+                                    errorMessage = error
+                                    showErrorDialog = true
                                 }
-                            ) {
-                                Text("OK")
-                            }
+                            )
                         },
-                        dismissButton = {
-                            TextButton(onClick = { showDatePicker = false }) {
-                                Text("Cancel")
-                            }
-                        }
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF824DFF),
+                            contentColor = Color.White
+                        ),
+                        enabled = canPost && !state.isLoading
                     ) {
-                        DatePicker(state = datePickerState)
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                text = "Post",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Category:",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF666666),
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val categories = listOf(
-                    "Electronic", "Clothes", "Cards",
-                    "Accessories", "Documents", "Others"
-                )
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    categories.forEach { category ->
-                        CategoryChip(
-                            text = category,
-                            isSelected = selectedCategory == category,
-                            onClick = { selectedCategory = category }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Button(
-                    onClick = { onPostClick(createPostData()) },
+            // Loading overlay
+            if (state.isLoading) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF824DFF),
-                        contentColor = Color.White
-                    ),
-                    enabled = canPost   // 🔥 这里是唯一修改的按钮 enable 条件
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Post",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+                    CircularProgressIndicator(color = Color(0xFF824DFF))
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Don't dismiss */ },
+            title = {
+                Text(
+                    "Success!",
+                    color = Color(0xFF824DFF),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your post has been created successfully!")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        onPostSuccess()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF824DFF)
+                    )
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = {
+                Text(
+                    "Error",
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(errorMessage)
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF824DFF)
+                    )
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
-// ----------------- 下面全部与原本一样（无改动） -----------------
+// ============= UI Components =============
 
 @Composable
 fun CustomTextField(
@@ -614,14 +702,17 @@ fun ImagePreviewItem(
                     .size(24.dp)
                     .clickable { onRemoveClick() }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Remove image",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.Center)
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Remove image",
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
     }
@@ -737,7 +828,6 @@ fun CompactQuestionAnswerField(
                 modifier = Modifier.padding(top = 14.dp, end = 8.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
-
                 CustomTextField(
                     value = question,
                     onValueChange = onQuestionChange,
@@ -759,22 +849,6 @@ fun CompactQuestionAnswerField(
     }
 }
 
-data class CreatePostData(
-    val title: String = "",
-    val description: String = "",
-    val postType: PostType = PostType.FOUND,
-    val phone: String = "",
-    val date: String = "",
-    val category: String = "",
-    val images: List<ImageItem> = emptyList(),
-    val questions: List<QuestionAnswer> = emptyList()
-)
-
-data class QuestionAnswer(
-    val question: String = "",
-    val answer: String = ""
-)
-
 @Preview(showBackground = true)
 @Composable
 fun CreatePostPagePreview() {
@@ -783,29 +857,7 @@ fun CreatePostPagePreview() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White
         ) {
-            CreatePostPage(
-                postType = PostType.FOUND,
-                onDraftClick = { println("Draft saved: $it") },
-                onPostClick = { println("Post created: $it") }
-            )
+            CreatePostPage()
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun CreatePostLostPagePreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
-        ) {
-            CreatePostPage(
-                postType = PostType.LOST,
-                onDraftClick = { println("Draft saved: $it") },
-                onPostClick = { println("Post created: $it") }
-            )
-        }
-    }
-}
-
