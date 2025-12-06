@@ -48,8 +48,6 @@ fun AppNavigation() {
                     navController.navigate("create_post/found")
                 },
                 onPostClick = { postId ->
-                    // TODO: 導航到帖子詳情頁
-                    // navController.navigate("post_detail/$postId")
                 }
             )
         }
@@ -72,13 +70,10 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onPostSuccess = {
-                    // 修復這裡：移除錯誤的 popUpTo 邏輯
                     navController.navigate("home") {
-                        // 清除創建頁面之前的堆疊，回到首頁
                         popUpTo("home") {
-                            inclusive = false  // 關鍵修改：保留首頁頁面
+                            inclusive = false
                         }
-                        // 防止多重實例
                         launchSingleTop = true
                     }
                 }

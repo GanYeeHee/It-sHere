@@ -108,18 +108,15 @@ class PostViewModel : ViewModel() {
             _state.value = _state.value.copy(isLoading = true)
 
             try {
-                // 模擬網絡請求
-                delay(1500)  // 1.5秒延遲
+                delay(1500)
 
                 Log.d(TAG, "Post creation successful")
 
-                // 更新狀態
                 _state.value = _state.value.copy(
                     isLoading = false,
                     error = null
                 )
 
-                // 重要！必須在主線程調用回調
                 withContext(Dispatchers.Main) {
                     Log.d(TAG, "Calling onSuccess callback")
                     onSuccess()
