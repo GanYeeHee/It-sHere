@@ -1,5 +1,7 @@
 package com.example.itshere
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -7,12 +9,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -23,6 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.ViewModel.PostViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -158,6 +166,20 @@ fun PostCardGrid(
 ) {
     var isFavorite by remember { mutableStateOf(false) }
 
+    LaunchedEffect(post.id) {
+        println("=== DEBUG PostCardGrid ===")
+        println("Post ID: ${post.id}")
+        println("Title: ${post.title}")
+        println("Image URLs count: ${post.imageUrls.size}")
+        if (post.imageUrls.isNotEmpty()) {
+            println("First image URL: ${post.imageUrls.first()}")
+            println("URL starts with http: ${post.imageUrls.first().startsWith("http")}")
+        } else {
+            println("No image URLs!")
+        }
+        println("==========================")
+    }
+
     // Calculate time ago
     val timeAgo = remember(post.timestamp) {
         val now = System.currentTimeMillis()
@@ -188,19 +210,83 @@ fun PostCardGrid(
                     .height(120.dp)
             ) {
                 // Display first image or placeholder
-                if (post.imageUrls.isNotEmpty()) {
-                    AsyncImage(
-                        model = post.imageUrls.first(),
-                        contentDescription = "Post image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = Color(0xFF87CEEB)
-                    ) {}
-                }
+                        if (post.imageUrls.isNotEmpty()) {
+                            val imageUrl = post.imageUrls.first()
+
+                            if (imageUrl.startsWith("http")) {
+                                val painter = rememberAsyncImagePainter(
+                                    model = imageUrl
+                                )
+
+                                when (painter.state) {
+                                    is AsyncImagePainter.State.Loading -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.LightGray),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color(0xFF7C4DFF)
+                                            )
+                                        }
+                                    }
+                                    is AsyncImagePainter.State.Error -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color(0xFF87CEEB)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.BrokenImage,
+                                                contentDescription = "Failed to load",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                    }
+                                    else -> {
+                                        Image(
+                                            painter = painter,
+                                            contentDescription = "Post image",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color(0xFF87CEEB)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Photo,
+                                        contentDescription = "No image",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFF87CEEB)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Photo,
+                                    contentDescription = "No image",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
 
                 // Post type badge
                 Surface(

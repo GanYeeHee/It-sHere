@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.UUID
 
 data class PostData(
@@ -101,21 +102,94 @@ class PostViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        Log.d(TAG, "createPost called")
-        Log.d(TAG, "Title: $title, Type: $postType, Images: ${images.size}")
+        Log.d(TAG, "=== CREATE POST START ===")
+        Log.d(TAG, "Title: $title")
+        Log.d(TAG, "Description: $description")
+        Log.d(TAG, "Post Type: $postType")
+        Log.d(TAG, "Images count: ${images.size}")
+
+        images.forEachIndexed { index, image ->
+            Log.d(TAG, "Image $index URI: ${image.uri}")
+        }
 
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
 
             try {
-                delay(1500)
+                val imageUrls = mutableListOf<String>()
 
-                Log.d(TAG, "Post creation successful")
+                Log.d(TAG, "Starting image upload process...")
+                for ((index, image) in images.withIndex()) {
+                    Log.d(TAG, "Uploading image $index: ${image.uri}")
 
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = null
+                    delay(100)
+
+                    val downloadUrl = uploadImage(image.uri)
+                    if (downloadUrl != null) {
+                        imageUrls.add(downloadUrl)
+                        Log.d(TAG, "✓ Image $index uploaded successfully: $downloadUrl")
+                    } else {
+                        Log.e(TAG, "✗ Image $index upload failed!")
+                    }
+                }
+
+                Log.d(TAG, "Total successful uploads: ${imageUrls.size}")
+                Log.d(TAG, "Image URLs to save: $imageUrls")
+
+                val currentUser = auth.currentUser
+                if (currentUser == null) {
+                    Log.e(TAG, "User not authenticated!")
+                    throw Exception("User not authenticated")
+                }
+
+                val questionMaps = questions.map {
+                    mapOf("question" to it.question, "answer" to it.answer)
+                }
+
+                val post = PostData(
+                    id = UUID.randomUUID().toString(),
+                    userId = currentUser.uid,
+                    userName = currentUser.displayName ?: "Anonymous",
+                    title = title,
+                    description = description,
+                    postType = if (postType == PostType.FOUND) "FOUND" else "LOST",
+                    phone = phone,
+                    date = date,
+                    category = category,
+                    imageUrls = imageUrls,
+                    questions = questionMaps,
+                    timestamp = System.currentTimeMillis()
                 )
+
+                Log.d(TAG, "Post object created:")
+                Log.d(TAG, "- ID: ${post.id}")
+                Log.d(TAG, "- Title: ${post.title}")
+                Log.d(TAG, "- Image URLs count: ${post.imageUrls.size}")
+
+                // 3. 保存到 Firestore
+                Log.d(TAG, "Saving to Firestore...")
+                firestore.collection("posts")
+                    .document(post.id)
+                    .set(post)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "✓ Post saved to Firestore successfully!")
+                        Log.d(TAG, "Document ID: ${post.id}")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "✗ Failed to save post to Firestore: ${e.message}")
+                    }
+                    .await()
+
+                Log.d(TAG, "✓ Post saved to Firestore: ${post.id}")
+
+                val currentPosts = _state.value.posts.toMutableList()
+                currentPosts.add(0, post)
+                _state.value = _state.value.copy(
+                    posts = currentPosts,
+                    isLoading = false
+                )
+
+                Log.d(TAG, "✓ Local state updated")
 
                 withContext(Dispatchers.Main) {
                     Log.d(TAG, "Calling onSuccess callback")
@@ -123,32 +197,56 @@ class PostViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error creating post: ${e.message}")
-
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
-
+                Log.e(TAG, "Error creating post: ${e.message}", e)
+                _state.value = _state.value.copy(isLoading = false)
                 withContext(Dispatchers.Main) {
-                    onError(e.message ?: "創建失敗")
+                    onError(e.message ?: "Failed to create post")
                 }
             }
+            Log.d(TAG, "=== CREATE POST END ===")
         }
     }
 
 
     private suspend fun uploadImage(uriString: String): String? {
         return try {
-            val uri = Uri.parse(uriString)
-            val fileName = "posts/${UUID.randomUUID()}.jpg"
-            val storageRef = storage.reference.child(fileName)
+            Log.d(TAG, "=== UPLOAD IMAGE START ===")
+            Log.d(TAG, "Input URI: $uriString")
 
-            storageRef.putFile(uri).await()
-            storageRef.downloadUrl.await().toString()
+            val uri = Uri.parse(uriString)
+            Log.d(TAG, "Parsed URI: $uri")
+
+            val fileName = "posts/${UUID.randomUUID()}.jpg"
+            Log.d(TAG, "File name: $fileName")
+
+            val storageRef = storage.reference.child(fileName)
+            Log.d(TAG, "Storage reference: $storageRef")
+
+            Log.d(TAG, "Starting upload...")
+            val uploadTask = storageRef.putFile(uri)
+
+            uploadTask.addOnProgressListener { taskSnapshot ->
+                val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
+                Log.d(TAG, "Upload progress: $progress%")
+            }
+
+            val taskSnapshot = uploadTask.await()
+            Log.d(TAG, "✓ Upload completed successfully")
+            Log.d(TAG, "Task snapshot: $taskSnapshot")
+
+            Log.d(TAG, "Getting download URL...")
+            val downloadUrl = storageRef.downloadUrl.await()
+            Log.d(TAG, "✓ Download URL obtained: $downloadUrl")
+
+            downloadUrl.toString()
+
         } catch (e: Exception) {
+            Log.e(TAG, "✗ Upload failed: ${e.javaClass.simpleName}")
+            Log.e(TAG, "Error message: ${e.message}")
             e.printStackTrace()
             null
+        } finally {
+            Log.d(TAG, "=== UPLOAD IMAGE END ===")
         }
     }
 

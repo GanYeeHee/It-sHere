@@ -41,7 +41,8 @@ android {
 }
 
 dependencies {
-    // Firebase BoM (統一管理所有 Firebase 版本)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth-ktx")
@@ -52,15 +53,12 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    // Image Loading (只保留 Coil)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // Camera (如果需要的話)
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
 
-    // Permissions (如果需要的話)
     implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
 
     // Compose & Material
