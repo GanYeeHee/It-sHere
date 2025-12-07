@@ -49,8 +49,7 @@ import java.util.*
 fun CreatePostPage(
     postType: PostType = PostType.FOUND,
     onBackClick: () -> Unit = {},
-    onPostSuccess: () -> Unit = {},
-    isDraftMode: Boolean = false
+    onPostSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = remember { PostViewModel(context) }
@@ -74,7 +73,6 @@ fun CreatePostPage(
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
-    var showSaveAsDraftDialog by remember { mutableStateOf(false) }
 
     val state by viewModel.state.collectAsState()
 
@@ -103,7 +101,7 @@ fun CreatePostPage(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isDraftMode) "Save Draft" else "Create Post",
+                        text = "Create Post",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -115,26 +113,6 @@ fun CreatePostPage(
                             contentDescription = "Back",
                             tint = Color.Black
                         )
-                    }
-                },
-                actions = {
-                    if (!isDraftMode) {
-                        TextButton(
-                            onClick = {
-                                if (title.isNotBlank() || description.isNotBlank() || selectedImages.isNotEmpty()) {
-                                    showSaveAsDraftDialog = true
-                                } else {
-                                    errorMessage = "No content to save as draft"
-                                    showErrorDialog = true
-                                }
-                            }
-                        ) {
-                            Text(
-                                text = "Save Draft",
-                                color = Color(0xFF824DFF),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -395,11 +373,6 @@ fun CreatePostPage(
 
                     Button(
                         onClick = {
-                            android.util.Log.d(
-                                "CreatePostPage",
-                                "Button clicked. isDraftMode=$isDraftMode, canPost=$canPost"
-                            )
-
                             viewModel.createPost(
                                 title = title,
                                 description = description,
@@ -415,14 +388,8 @@ fun CreatePostPage(
                                         QuestionAnswer(question3, answer3)
                                     )
                                 } else emptyList(),
-                                isDraft = isDraftMode,
                                 onSuccess = {
-                                    if (isDraftMode) {
-                                        errorMessage = "Draft saved locally"
-                                        showSuccessDialog = true
-                                    } else {
-                                        onPostSuccess()
-                                    }
+                                    onPostSuccess()
                                 },
                                 onError = { error ->
                                     errorMessage = error
@@ -438,11 +405,7 @@ fun CreatePostPage(
                             containerColor = Color(0xFF824DFF),
                             disabledContainerColor = Color(0xFFCCCCCC)
                         ),
-                        enabled = if (isDraftMode) {
-                            title.isNotBlank() || description.isNotBlank() || selectedImages.isNotEmpty()
-                        } else {
-                            canPost && !state.isLoading
-                        }
+                        enabled = canPost && !state.isLoading
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
@@ -452,12 +415,11 @@ fun CreatePostPage(
                             )
                         } else {
                             Text(
-                                text = if (isDraftMode) "Save Draft Locally" else
-                                    if (canPost) "Post" else "Fill Required Fields",
+                                text = if (canPost) "Post" else "Fill Required Fields",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp,
-                                color = if (canPost || isDraftMode) Color.White else Color(0xFF666666)
+                                color = if (canPost) Color.White else Color(0xFF666666)
                             )
                         }
                     }
@@ -488,72 +450,11 @@ fun CreatePostPage(
         }
     }
 
-    if (showSaveAsDraftDialog) {
-        AlertDialog(
-            onDismissRequest = { showSaveAsDraftDialog = false },
-            title = {
-                Text(
-                    "Save as Draft?",
-                    color = Color(0xFF824DFF),
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text("Your post will be saved locally. You can publish it later.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showSaveAsDraftDialog = false
-                        viewModel.saveDraft(
-                            title = title,
-                            description = description,
-                            postType = selectedPostType,
-                            phone = phone,
-                            date = date,
-                            category = selectedCategory,
-                            images = selectedImages,
-                            questions = if (selectedPostType == PostType.FOUND) {
-                                listOf(
-                                    QuestionAnswer(question1, answer1),
-                                    QuestionAnswer(question2, answer2),
-                                    QuestionAnswer(question3, answer3)
-                                )
-                            } else emptyList(),
-                            onSuccess = {
-                                errorMessage = "Draft saved locally"
-                                showSuccessDialog = true
-                            },
-                            onError = { error ->
-                                errorMessage = error
-                                showErrorDialog = true
-                            }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF824DFF)
-                    )
-                ) {
-                    Text("Save Draft")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showSaveAsDraftDialog = false }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = {
                 showSuccessDialog = false
-                if (!isDraftMode) {
-                    onPostSuccess()
-                }
+                onPostSuccess()
             },
             title = {
                 Text(
@@ -569,9 +470,7 @@ fun CreatePostPage(
                 Button(
                     onClick = {
                         showSuccessDialog = false
-                        if (!isDraftMode) {
-                            onPostSuccess()
-                        }
+                        onPostSuccess()
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF824DFF)

@@ -7,42 +7,41 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.*
 import com.example.itshere.Dao.AppDatabase
+import com.example.itshere.Dao.LocalImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 
 data class PostState(
     val posts: List<PostData> = emptyList(),
-    val drafts: List<PostData> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val uploadProgress: Float = 0f
 )
 
-class PostViewModel(context: Context) : ViewModel() {
+class PostViewModel(private val context: Context) : ViewModel() {
     private val _state = MutableStateFlow(PostState())
     val state: StateFlow<PostState> = _state
 
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
     private val database = AppDatabase.getInstance(context)
     private val localImageDao = database.localImageDao()
 
     private val TAG = "PostViewModel"
 
     init {
+        Log.d(TAG, "🎯 PostViewModel initialized - LOCAL FILE PATH VERSION")
         loadPosts()
-        loadLocalDrafts()
     }
 
     fun loadPosts() {
@@ -70,20 +69,10 @@ class PostViewModel(context: Context) : ViewModel() {
                                 }
                             } ?: emptyList()
 
-                            // 为每个帖子获取本地图片
-                            val postsWithLocalImages = mutableListOf<PostData>()
-                            for (post in posts) {
-                                val localImages = localImageDao.getImagesByPostId(post.id)
-                                    .firstOrNull() ?: emptyList()
-                                val localImageUris = localImages.map { it.uri }
-
-                                postsWithLocalImages.add(
-                                    post.copy(localImageUris = localImageUris)
-                                )
-                            }
+                            Log.d(TAG, "📦 Loaded ${posts.size} posts")
 
                             _state.value = _state.value.copy(
-                                posts = postsWithLocalImages,
+                                posts = posts,
                                 isLoading = false
                             )
                         }
@@ -97,34 +86,6 @@ class PostViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun loadLocalDrafts() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val unuploadedImages = localImageDao.getAllUnuploadedImages().firstOrNull()
-                if (unuploadedImages != null) {
-                    val draftPosts = unuploadedImages.groupBy { it.postId }
-                        .map { (postId, images) ->
-                            PostData(
-                                id = postId,
-                                title = "Draft Post",
-                                description = "Local draft with ${images.size} images",
-                                localImageUris = images.map { it.uri },
-                                isDraft = true,
-                                isLocalOnly = true,
-                                timestamp = images.maxOfOrNull { it.timestamp } ?: System.currentTimeMillis()
-                            )
-                        }
-
-                    withContext(Dispatchers.Main) {
-                        _state.value = _state.value.copy(drafts = draftPosts)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading drafts: ${e.message}")
-            }
-        }
-    }
-
     fun createPost(
         title: String,
         description: String,
@@ -134,76 +95,102 @@ class PostViewModel(context: Context) : ViewModel() {
         category: String,
         images: List<ImageItem>,
         questions: List<QuestionAnswer>,
-        isDraft: Boolean = false,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
+            Log.d(TAG, "🚀 Starting createPost - USING LOCAL FILE PATHS")
             _state.value = _state.value.copy(isLoading = true, uploadProgress = 0f)
 
             try {
                 val postId = UUID.randomUUID().toString()
                 val currentUser = auth.currentUser
 
-                if (currentUser == null && !isDraft) {
+                if (currentUser == null) {
                     throw Exception("User not authenticated")
                 }
 
-                val savedImages = mutableListOf<com.example.itshere.Dao.LocalImage>()
-                images.forEachIndexed { index, image ->
-                    val localImage = com.example.itshere.Dao.LocalImage(
-                        postId = postId,
-                        uri = image.uri,
-                        isUploaded = false
-                    )
-                    localImageDao.insert(localImage)
-                    savedImages.add(localImage)
+                Log.d(TAG, "📸 Processing ${images.size} images")
 
-                    val progress = (index + 1).toFloat() / images.size.toFloat() * 0.3f
-                    _state.value = _state.value.copy(uploadProgress = progress)
+                // ✅ 複製圖片並獲取絕對文件路徑
+                val filePaths = mutableListOf<String>()
+                images.forEachIndexed { index, image ->
+                    try {
+                        val filePath = copyImageAndGetFilePath(image.uri, postId, index)
+                        if (filePath != null) {
+                            filePaths.add(filePath)
+                            Log.d(TAG, "  ✓ Copied image $index: $filePath")
+
+                            val progress = (index + 1).toFloat() / images.size.toFloat()
+                            _state.value = _state.value.copy(uploadProgress = progress)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to copy image: ${e.message}", e)
+                    }
                 }
 
-                val localImageUris = savedImages.map { it.uri }
+                if (filePaths.isEmpty()) {
+                    throw Exception("Failed to save images")
+                }
+
+                Log.d(TAG, "💾 Saving images to Room database")
+                val localImages = filePaths.map { path ->
+                    LocalImage(
+                        postId = postId,
+                        uri = path,  // ✅ 存儲絕對文件路徑
+                        timestamp = System.currentTimeMillis(),
+                        isUploaded = false
+                    )
+                }
+                localImageDao.insertAll(localImages)
+                Log.d(TAG, "✓ Saved ${localImages.size} images to Room")
+
                 val questionMaps = questions.map {
                     mapOf("question" to it.question, "answer" to it.answer)
                 }
 
                 val post = PostData(
                     id = postId,
-                    userId = currentUser?.uid ?: "draft_user",
-                    userName = currentUser?.displayName ?: "Anonymous",
+                    userId = currentUser.uid,
+                    userName = currentUser.displayName ?: "Anonymous",
                     title = title,
                     description = description,
                     postType = if (postType == PostType.FOUND) "FOUND" else "LOST",
                     phone = phone,
                     date = date,
                     category = category,
-                    imageUrls = emptyList(),
-                    localImageUris = localImageUris,
+                    imageUrls = filePaths,  // ✅ 使用絕對文件路徑
                     questions = questionMaps,
-                    timestamp = System.currentTimeMillis(),
-                    isDraft = isDraft,
-                    isLocalOnly = isDraft,
-                    needsUpload = !isDraft
+                    timestamp = System.currentTimeMillis()
                 )
 
-                if (isDraft) {
-                    val currentDrafts = _state.value.drafts.toMutableList()
-                    currentDrafts.add(0, post)
-                    _state.value = _state.value.copy(
-                        drafts = currentDrafts,
-                        isLoading = false,
-                        uploadProgress = 1f
-                    )
+                Log.d(TAG, "☁️ Saving post to Firestore")
+                Log.d(TAG, "  Post ID: $postId")
+                Log.d(TAG, "  Image Paths: ${post.imageUrls}")
 
-                    withContext(Dispatchers.Main) {
-                        onSuccess()
-                    }
-                } else {
-                    uploadPostToFirebase(post, savedImages, onSuccess, onError)
+                firestore.collection("posts")
+                    .document(postId)
+                    .set(post)
+                    .await()
+
+                Log.d(TAG, "✅ Post saved successfully!")
+
+                val currentPosts = _state.value.posts.toMutableList()
+                currentPosts.add(0, post)
+
+                _state.value = _state.value.copy(
+                    posts = currentPosts,
+                    isLoading = false,
+                    uploadProgress = 1f
+                )
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
                 }
 
             } catch (e: Exception) {
+                Log.e(TAG, "❌ Error creating post: ${e.message}", e)
+                e.printStackTrace()
                 _state.value = _state.value.copy(
                     isLoading = false,
                     uploadProgress = 0f
@@ -215,111 +202,40 @@ class PostViewModel(context: Context) : ViewModel() {
         }
     }
 
-    private suspend fun uploadPostToFirebase(
-        post: PostData,
-        localImages: List<com.example.itshere.Dao.LocalImage>,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
+    /**
+     * 複製圖片到 app 私有存儲,返回絕對文件路徑
+     */
+    private suspend fun copyImageAndGetFilePath(
+        uriString: String,
+        postId: String,
+        index: Int
+    ): String? = withContext(Dispatchers.IO) {
         try {
-            val uploadedImageUrls = mutableListOf<String>()
-            val totalImages = localImages.size
+            val sourceUri = Uri.parse(uriString)
 
-            localImages.forEachIndexed { index, localImage ->
-                try {
-                    val downloadUrl = uploadImageToFirebase(localImage.uri)
-                    if (downloadUrl != null) {
-                        uploadedImageUrls.add(downloadUrl)
-                        localImageDao.markAsUploaded(localImage.id)
+            // 創建存儲目錄
+            val imagesDir = File(context.filesDir, "post_images")
+            if (!imagesDir.exists()) {
+                imagesDir.mkdirs()
+            }
 
-                        val progress = 0.3f + (index + 1).toFloat() / totalImages.toFloat() * 0.6f
-                        _state.value = _state.value.copy(uploadProgress = progress)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to upload image ${localImage.id}: ${e.message}")
+            // 創建目標文件
+            val fileName = "${postId}_$index.jpg"
+            val destFile = File(imagesDir, fileName)
+
+            // 複製文件
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
                 }
             }
 
-            val finalPost = post.copy(
-                imageUrls = uploadedImageUrls,
-                localImageUris = emptyList(),
-                isLocalOnly = false,
-                needsUpload = false
-            )
-
-            firestore.collection("posts")
-                .document(post.id)
-                .set(finalPost)
-                .await()
-
-            Log.d(TAG, "✓ Post saved to Firestore: ${post.id}")
-
-            val currentPosts = _state.value.posts.toMutableList()
-            currentPosts.add(0, finalPost)
-
-            _state.value = _state.value.copy(
-                posts = currentPosts,
-                isLoading = false,
-                uploadProgress = 1f
-            )
-
-            withContext(Dispatchers.Main) {
-                onSuccess()
-            }
-
+            // ✅ 返回絕對文件路徑
+            destFile.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "Error uploading post: ${e.message}", e)
-            _state.value = _state.value.copy(isLoading = false, uploadProgress = 0f)
-            withContext(Dispatchers.Main) {
-                onError("Failed to upload post: ${e.message}")
-            }
+            Log.e(TAG, "Error copying image: ${e.message}", e)
+            null
         }
-    }
-
-    private suspend fun uploadImageToFirebase(uriString: String): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val uri = Uri.parse(uriString)
-                val fileName = "posts/${UUID.randomUUID()}.jpg"
-                val storageRef = storage.reference.child(fileName)
-
-                val uploadTask = storageRef.putFile(uri)
-                val taskSnapshot = uploadTask.await()
-                val downloadUrl = storageRef.downloadUrl.await()
-
-                downloadUrl.toString()
-            } catch (e: Exception) {
-                Log.e(TAG, "Upload failed: ${e.message}")
-                null
-            }
-        }
-    }
-
-    fun saveDraft(
-        title: String,
-        description: String,
-        postType: PostType,
-        phone: String,
-        date: String,
-        category: String,
-        images: List<ImageItem>,
-        questions: List<QuestionAnswer>,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        createPost(
-            title = title,
-            description = description,
-            postType = postType,
-            phone = phone,
-            date = date,
-            category = category,
-            images = images,
-            questions = questions,
-            isDraft = true,
-            onSuccess = onSuccess,
-            onError = onError
-        )
     }
 
     fun toggleFavorite(postId: String) {
@@ -339,37 +255,6 @@ class PostViewModel(context: Context) : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error toggling favorite: ${e.message}")
-            }
-        }
-    }
-
-    suspend fun getPostImages(postId: String): List<String> {
-        return withContext(Dispatchers.IO) {
-            val post = _state.value.posts.find { it.id == postId }
-            if (post != null) {
-                if (post.imageUrls.isNotEmpty()) {
-                    post.imageUrls
-                } else {
-                    post.localImageUris
-                }
-            } else {
-                val localImages = localImageDao.getImagesByPostId(postId).firstOrNull()
-                localImages?.map { it.uri } ?: emptyList()
-            }
-        }
-    }
-
-    fun deleteDraft(postId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                localImageDao.deleteByPostId(postId)
-
-                withContext(Dispatchers.Main) {
-                    val updatedDrafts = _state.value.drafts.filter { it.id != postId }
-                    _state.value = _state.value.copy(drafts = updatedDrafts)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error deleting draft: ${e.message}")
             }
         }
     }

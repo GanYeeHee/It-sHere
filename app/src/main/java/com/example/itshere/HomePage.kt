@@ -11,11 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,12 +33,12 @@ import com.example.itshere.Data.PostData
 import com.example.itshere.ViewModel.PostViewModel
 import com.example.itshere.ViewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import java.io.File
 
 @Composable
 fun HomePage(
     onCreatePostClick: () -> Unit = {},
-    onPostClick: (String) -> Unit = {},
-    onViewDraftsClick: () -> Unit = {}
+    onPostClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = viewModel(
@@ -51,8 +48,7 @@ fun HomePage(
     HomePageContent(
         viewModel = viewModel,
         onCreatePostClick = onCreatePostClick,
-        onPostClick = onPostClick,
-        onViewDraftsClick = onViewDraftsClick
+        onPostClick = onPostClick
     )
 }
 
@@ -61,8 +57,7 @@ fun HomePage(
 private fun HomePageContent(
     viewModel: PostViewModel,
     onCreatePostClick: () -> Unit,
-    onPostClick: (String) -> Unit,
-    onViewDraftsClick: () -> Unit
+    onPostClick: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -107,7 +102,7 @@ private fun HomePageContent(
                 .padding(paddingValues)
         ) {
             when {
-                state.isLoading && state.posts.isEmpty() && state.drafts.isEmpty() -> {
+                state.isLoading && state.posts.isEmpty() -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
                         color = Color(0xFF7C4DFF)
@@ -137,7 +132,7 @@ private fun HomePageContent(
                         }
                     }
                 }
-                state.posts.isEmpty() && state.drafts.isEmpty() -> {
+                state.posts.isEmpty() -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -166,18 +161,6 @@ private fun HomePageContent(
                         contentPadding = PaddingValues(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        if (state.drafts.isNotEmpty()) {
-                            items(state.drafts) { draft ->
-                                DraftPostCardGrid(
-                                    post = draft,
-                                    onDeleteClick = { viewModel.deleteDraft(draft.id) },
-                                    onPublishClick = {
-                                        // TODO: 实现发布草稿功能
-                                    }
-                                )
-                            }
-                        }
-
                         items(state.posts) { post ->
                             PostCardGrid(
                                 post = post,
@@ -229,24 +212,16 @@ fun PostCardGrid(
                     .fillMaxWidth()
                     .height(120.dp)
             ) {
-                val displayImages = remember(post) {
-                    if (post.imageUrls.isNotEmpty()) {
-                        post.imageUrls
-                    } else {
-                        post.localImageUris
-                    }
-                }
+                if (post.imageUrls.isNotEmpty()) {
+                    val imagePath = post.imageUrls.first()
 
-                if (displayImages.isNotEmpty()) {
-                    val imageUrl = displayImages.first()
+                    // ✅ 修正:檢查文件是否存在
+                    val imageFile = File(imagePath)
+                    val isValidPath = imageFile.exists() && imageFile.isFile
 
-                    val isValidUri = imageUrl.startsWith("http") ||
-                            imageUrl.startsWith("content") ||
-                            imageUrl.startsWith("file")
-
-                    if (isValidUri) {
+                    if (isValidPath) {
                         val painter = rememberAsyncImagePainter(
-                            model = imageUrl
+                            model = imageFile  // ✅ 直接使用 File 對象
                         )
 
                         when (painter.state) {
@@ -271,12 +246,21 @@ fun PostCardGrid(
                                         .background(Color(0xFF87CEEB)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.BrokenImage,
-                                        contentDescription = "Failed to load",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(32.dp)
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.BrokenImage,
+                                            contentDescription = "Failed to load",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Text(
+                                            text = "Load failed",
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
                                 }
                             }
                             else -> {
@@ -289,18 +273,28 @@ fun PostCardGrid(
                             }
                         }
                     } else {
+                        // 文件不存在
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFF87CEEB)),
+                                .background(Color(0xFFFFCDD2)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Image,
-                                contentDescription = "No image",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Image,
+                                    contentDescription = "File not found",
+                                    tint = Color(0xFFC62828),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    text = "File not found",
+                                    color = Color(0xFFC62828),
+                                    fontSize = 10.sp
+                                )
+                            }
                         }
                     }
                 } else {
@@ -333,36 +327,6 @@ fun PostCardGrid(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         color = if (post.postType == "FOUND") Color(0xFF6A1B9A) else Color(0xFF1976D2)
                     )
-                }
-
-                if (post.isLocalOnly || post.needsUpload) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp),
-                        color = Color(0xFFFFF3CD),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CloudOff,
-                                contentDescription = "Local",
-                                tint = Color(0xFF856404),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Local",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF856404),
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
                 }
             }
 
@@ -421,183 +385,6 @@ fun PostCardGrid(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DraftPostCardGrid(
-    post: PostData,
-    onDeleteClick: () -> Unit = {},
-    onPublishClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFF3CD),
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp),
-        onClick = onPublishClick
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            ) {
-                // 显示本地图片
-                if (post.localImageUris.isNotEmpty()) {
-                    val imageUrl = post.localImageUris.first()
-
-                    val painter = rememberAsyncImagePainter(
-                        model = imageUrl
-                    )
-
-                    when (painter.state) {
-                        is AsyncImagePainter.State.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color(0xFF7C4DFF)
-                                )
-                            }
-                        }
-                        is AsyncImagePainter.State.Error -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFFFE082)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.NoteAdd,
-                                    contentDescription = "Draft",
-                                    tint = Color(0xFF856404),
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
-                        else -> {
-                            Image(
-                                painter = painter,
-                                contentDescription = "Draft image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFFFE082)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NoteAdd,
-                            contentDescription = "Draft",
-                            tint = Color(0xFF856404),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
-                    color = Color(0xFFFFC107),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = "DRAFT",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = Color(0xFF856404),
-                        fontSize = 10.sp
-                    )
-                }
-
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete draft",
-                        tint = Color.Red,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = post.title.ifEmpty { "Untitled Draft" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Color(0xFF856404)
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Tap to edit and publish",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF856404),
-                    fontSize = 11.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${post.localImageUris.size} images",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF856404),
-                        fontSize = 11.sp
-                    )
-
-                    Button(
-                        onClick = onPublishClick,
-                        modifier = Modifier.height(28.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF28A745),
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Text(
-                            text = "Publish",
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun HomePagePreview() {
@@ -635,42 +422,12 @@ fun PostCardGridPreview() {
                     phone = "",
                     date = "05/12/2024",
                     category = "Electronic",
-                    imageUrls = emptyList(),
-                    localImageUris = listOf("content://media/external/images/media/12345"),
+                    imageUrls = listOf("https://example.com/image.jpg"),
                     questions = emptyList(),
                     timestamp = System.currentTimeMillis() - 86400000
                 ),
                 onFavoriteClick = {},
                 onClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DraftPostCardGridPreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier
-                .width(180.dp)
-                .padding(8.dp),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            DraftPostCardGrid(
-                post = PostData(
-                    id = "draft_1",
-                    title = "Lost Wallet Draft",
-                    description = "Lost near campus",
-                    postType = "LOST",
-                    category = "Others",
-                    localImageUris = listOf("content://media/external/images/media/12345"),
-                    isDraft = true,
-                    isLocalOnly = true,
-                    timestamp = System.currentTimeMillis()
-                ),
-                onDeleteClick = {},
-                onPublishClick = {}
             )
         }
     }
