@@ -1,6 +1,6 @@
 package com.example.itshere
 
-import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -23,11 +22,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
 import com.example.itshere.ViewModel.PostViewModel
@@ -214,63 +211,15 @@ fun PostCardGrid(
             ) {
                 if (post.imageUrls.isNotEmpty()) {
                     val imagePath = post.imageUrls.first()
-
                     val imageFile = File(imagePath)
-                    val isValidPath = imageFile.exists() && imageFile.isFile
 
-                    if (isValidPath) {
-                        val painter = rememberAsyncImagePainter(
-                            model = imageFile
+                    if (imageFile.exists() && imageFile.canRead()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = imageFile),
+                            contentDescription = "Post image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-
-                        when (painter.state) {
-                            is AsyncImagePainter.State.Loading -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.LightGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
-                                        color = Color(0xFF7C4DFF)
-                                    )
-                                }
-                            }
-                            is AsyncImagePainter.State.Error -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color(0xFF87CEEB)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.BrokenImage,
-                                            contentDescription = "Failed to load",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                        Text(
-                                            text = "Load failed",
-                                            color = Color.White,
-                                            fontSize = 10.sp
-                                        )
-                                    }
-                                }
-                            }
-                            else -> {
-                                Image(
-                                    painter = painter,
-                                    contentDescription = "Post image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
                     } else {
                         Box(
                             modifier = Modifier
@@ -379,54 +328,6 @@ fun PostCardGrid(
                     }
                 }
             }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomePagePreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            HomePage(
-                onCreatePostClick = {},
-                onPostClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PostCardGridPreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier
-                .width(180.dp)
-                .padding(8.dp),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            PostCardGrid(
-                post = PostData(
-                    id = "1",
-                    userId = "user123",
-                    userName = "JohnDoe",
-                    title = "Found iPhone 13 Pro",
-                    description = "Found near the library",
-                    postType = "FOUND",
-                    phone = "",
-                    date = "05/12/2024",
-                    category = "Electronic",
-                    imageUrls = listOf("https://example.com/image.jpg"),
-                    questions = emptyList(),
-                    timestamp = System.currentTimeMillis() - 86400000
-                ),
-                onFavoriteClick = {},
-                onClick = {}
-            )
         }
     }
 }
