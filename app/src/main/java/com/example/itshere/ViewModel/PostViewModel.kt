@@ -202,9 +202,6 @@ class PostViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    /**
-     * 複製圖片到 app 私有存儲,返回絕對文件路徑
-     */
     private suspend fun copyImageAndGetFilePath(
         uriString: String,
         postId: String,
@@ -213,24 +210,20 @@ class PostViewModel(private val context: Context) : ViewModel() {
         try {
             val sourceUri = Uri.parse(uriString)
 
-            // 創建存儲目錄
             val imagesDir = File(context.filesDir, "post_images")
             if (!imagesDir.exists()) {
                 imagesDir.mkdirs()
             }
 
-            // 創建目標文件
             val fileName = "${postId}_$index.jpg"
             val destFile = File(imagesDir, fileName)
 
-            // 複製文件
             context.contentResolver.openInputStream(sourceUri)?.use { input ->
                 FileOutputStream(destFile).use { output ->
                     input.copyTo(output)
                 }
             }
 
-            // ✅ 返回絕對文件路徑
             destFile.absolutePath
         } catch (e: Exception) {
             Log.e(TAG, "Error copying image: ${e.message}", e)
