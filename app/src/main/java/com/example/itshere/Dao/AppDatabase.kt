@@ -1,4 +1,3 @@
-// 文件: Dao/AppDatabase.kt
 package com.example.itshere.Dao
 
 import android.content.Context

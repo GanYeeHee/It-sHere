@@ -1,4 +1,3 @@
-// 文件: Dao/LocalImageDao.kt
 package com.example.itshere.Dao
 
 import androidx.room.*
