@@ -215,13 +215,12 @@ fun PostCardGrid(
                 if (post.imageUrls.isNotEmpty()) {
                     val imagePath = post.imageUrls.first()
 
-                    // ✅ 修正:檢查文件是否存在
                     val imageFile = File(imagePath)
                     val isValidPath = imageFile.exists() && imageFile.isFile
 
                     if (isValidPath) {
                         val painter = rememberAsyncImagePainter(
-                            model = imageFile  // ✅ 直接使用 File 對象
+                            model = imageFile
                         )
 
                         when (painter.state) {
@@ -273,7 +272,6 @@ fun PostCardGrid(
                             }
                         }
                     } else {
-                        // 文件不存在
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
