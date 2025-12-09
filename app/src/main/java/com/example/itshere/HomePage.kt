@@ -1,6 +1,5 @@
 package com.example.itshere
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
 import com.example.itshere.ViewModel.PostViewModel
@@ -35,7 +36,8 @@ import java.io.File
 fun HomePage(
     onCreatePostClick: () -> Unit = {},
     onPostClick: (String) -> Unit = {},
-    onLogoutSuccess: () -> Unit = {}
+    onLogoutSuccess: () -> Unit = {},
+    navController: NavHostController
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = viewModel(
@@ -43,6 +45,7 @@ fun HomePage(
     )
 
     HomePageContent(
+        navController = navController,
         viewModel = viewModel,
         onCreatePostClick = onCreatePostClick,
         onPostClick = onPostClick,
@@ -53,6 +56,7 @@ fun HomePage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomePageContent(
+    navController: NavController,
     viewModel: PostViewModel,
     onCreatePostClick: () -> Unit,
     onPostClick: (String) -> Unit,
@@ -61,7 +65,6 @@ private fun HomePageContent(
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
 
-    // 菜單狀態
     var showMenu by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -195,15 +198,15 @@ private fun HomePageContent(
                         showMenu = false
                     },
                     onNotificationClick = {
-                        // TODO: Navigate to notifications
+                        navController.navigate("notifications")
                         showMenu = false
                     },
                     onAboutUsClick = {
-                        // TODO: Navigate to about us
+                        navController.navigate("about_us")
                         showMenu = false
                     },
                     onSettingClick = {
-                        // TODO: Navigate to settings
+                        navController.navigate("settings")
                         showMenu = false
                     },
                     onLogoutClick = {

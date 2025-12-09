@@ -23,7 +23,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = if (isUserLoggedIn) "home" else "login"
+        startDestination = "login"
     ) {
         composable("login") {
             LoginScreen(
@@ -53,6 +53,7 @@ fun AppNavigation() {
 
         composable("home") {
             HomePage(
+                navController = navController,
                 onCreatePostClick = {
                     navController.navigate("create_post/found")
                 },
@@ -109,6 +110,26 @@ fun AppNavigation() {
                     navController.popBackStack()
                 }
             )
+        }
+
+        composable("about_us") {
+            AboutUsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("settings") {
+            SettingsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("notification"){
+            NotificationsScreen()
         }
     }
 }
