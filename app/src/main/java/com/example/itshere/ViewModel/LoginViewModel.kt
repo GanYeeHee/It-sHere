@@ -1,9 +1,13 @@
-// LoginViewModel.kt
+// file name: LoginViewModel.kt
 package com.example.itshere.ViewModel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.itshere.Dao.AppDatabase
+import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -37,6 +41,7 @@ class LoginViewModel : ViewModel() {
     }
 
     fun login(
+        context: Context,
         onSuccess: () -> Unit,
         onEmailNotVerified: () -> Unit,
         onError: (String) -> Unit
@@ -75,18 +80,82 @@ class LoginViewModel : ViewModel() {
                         if (task.isSuccessful) {
                             val user = auth.currentUser
                             if (user?.isEmailVerified == true) {
+                                // 获取用户信息
+                                val userId = user.uid
+                                val userEmail = user.email ?: currentState.email
+                                val userName = user.displayName ?: "User"
+                                val phoneNumber = user.phoneNumber
+                                val isEmailVerified = user.isEmailVerified
+                                val photoUrl = user.photoUrl?.toString()
+
+                                println("✅ User logged in successfully:")
+                                println("   UID: $userId")
+                                println("   Email: $userEmail")
+                                println("   Name: $userName")
+                                println("   Email Verified: $isEmailVerified")
+
+                                // 同步用户数据到本地数据库
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    try {
+                                        // 创建用户对象
+                                        val userData = com.example.itshere.Data.User(
+                                            uid = userId,
+                                            email = userEmail,
+                                            displayName = userName,
+                                            phoneNumber = phoneNumber,
+                                            photoUrl = photoUrl,
+                                            isEmailVerified = isEmailVerified,
+                                            createdAt = user.metadata?.creationTimestamp ?: System.currentTimeMillis(),
+                                            lastSignInTime = System.currentTimeMillis(),
+                                            providerId = user.providerId
+                                        )
+
+                                        // 获取数据库和仓库
+                                        val database = AppDatabase.getInstance(context)
+                                        val userRepository = UserRepository(database)
+
+                                        // 保存到本地数据库
+                                        database.userDao().insertUser(userData)
+                                        println("✅ User saved to local database")
+
+                                        // 同步到 Firestore
+                                        userRepository.syncUserToFirestore(userData)
+                                        println("✅ User synced to Firestore")
+
+                                        // 验证数据是否保存成功
+                                        val savedUser = database.userDao().getUserById(userId)
+                                        if (savedUser != null) {
+                                            println("✅ User data verified in local database:")
+                                            println("   Saved UID: ${savedUser.uid}")
+                                            println("   Saved Email: ${savedUser.email}")
+                                            println("   Total users in DB: ${database.userDao().getAllUsers().size}")
+                                        } else {
+                                            println("❌ User not found in local database after save")
+                                        }
+
+                                    } catch (e: Exception) {
+                                        println("❌ Error saving user to local database: ${e.message}")
+                                        e.printStackTrace()
+                                    }
+                                }
+
                                 onSuccess()
                             } else {
+                                println("❌ Email not verified for user: ${user?.email}")
                                 auth.signOut()
                                 onEmailNotVerified()
                             }
                         } else {
-                            onError(task.exception?.message ?: "Login failed")
+                            val errorMsg = task.exception?.message ?: "Login failed"
+                            println("❌ Login failed: $errorMsg")
+                            onError(errorMsg)
                         }
                     }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false)
-                onError(e.message ?: "Login failed")
+                val errorMsg = e.message ?: "Login failed"
+                println("❌ Login exception: $errorMsg")
+                onError(errorMsg)
             }
         }
     }

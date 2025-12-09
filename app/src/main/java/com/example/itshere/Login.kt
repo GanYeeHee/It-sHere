@@ -53,7 +53,8 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val googleState by googleSignInViewModel.state.collectAsState()
     val auth = FirebaseAuth.getInstance()
-    val context = LocalContext.current
+    val context = LocalContext.current  // 获取 Context
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -258,10 +259,11 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Login button
+                // Login button - 修复这里，传递 context
                 Button(
                     onClick = {
                         viewModel.login(
+                            context = context,  // 传递 context
                             onSuccess = onLoginSuccess,
                             onEmailNotVerified = { showEmailNotVerifiedDialog = true },
                             onError = { error ->

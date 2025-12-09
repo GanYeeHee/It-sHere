@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -32,6 +33,7 @@ fun SignUpScreen(
     onNavigateBack: () -> Unit,
     onSignUpSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var showVerificationSentDialog by remember { mutableStateOf(false) }
@@ -345,6 +347,7 @@ fun SignUpScreen(
             Button(
                 onClick = {
                     viewModel.signUp(
+                        context = context,  // 传递 context
                         onSuccess = { showVerificationSentDialog = true },
                         onError = { error ->
                             errorMessage = error
