@@ -18,11 +18,9 @@ class UserRepository @Inject constructor(
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
-    // 同步当前用户到本地数据库
     suspend fun syncCurrentUserToLocal() {
         val firebaseUser = auth.currentUser ?: return
 
-        // 创建用户对象
         val user = User(
             uid = firebaseUser.uid,
             email = firebaseUser.email ?: "",
@@ -36,14 +34,11 @@ class UserRepository @Inject constructor(
             isAnonymous = firebaseUser.isAnonymous
         )
 
-        // 保存到本地数据库
         userDao.insertUser(user)
 
-        // 同步到 Firestore
         syncUserToFirestore(user)
     }
 
-    // 同步用户到 Firestore
     suspend fun syncUserToFirestore(user: User) {
         try {
             firestore.collection("users")
@@ -64,12 +59,10 @@ class UserRepository @Inject constructor(
                 )
                 .await()
         } catch (e: Exception) {
-            // Firestore 同步失败，但本地数据库已保存
             e.printStackTrace()
         }
     }
 
-    // 从 Firestore 获取用户并保存到本地
     suspend fun syncUserFromFirestore(uid: String) {
         try {
             val document = firestore.collection("users")
@@ -88,29 +81,24 @@ class UserRepository @Inject constructor(
         }
     }
 
-    // 获取本地所有用户
     suspend fun getAllLocalUsers(): List<User> {
         return userDao.getAllUsers()
     }
 
-    // 获取本地用户流
     fun getAllLocalUsersFlow(): Flow<List<User>> {
         return userDao.getAllUsersFlow()
     }
 
-    // 获取当前用户
     suspend fun getCurrentUser(): User? {
         val uid = auth.currentUser?.uid ?: return null
         return userDao.getUserById(uid)
     }
 
-    // 更新用户信息
     suspend fun updateUser(user: User) {
         userDao.updateUser(user)
         syncUserToFirestore(user)
     }
 
-    // 清除所有本地用户数据
     suspend fun clearAllLocalUsers() {
         userDao.deleteAllUsers()
     }

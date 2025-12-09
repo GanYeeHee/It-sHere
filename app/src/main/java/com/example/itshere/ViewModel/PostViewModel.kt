@@ -112,7 +112,6 @@ class PostViewModel(private val context: Context) : ViewModel() {
 
                 Log.d(TAG, "📸 Processing ${images.size} images")
 
-                // ✅ 複製圖片並獲取絕對文件路徑
                 val filePaths = mutableListOf<String>()
                 images.forEachIndexed { index, image ->
                     try {
@@ -137,7 +136,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val localImages = filePaths.map { path ->
                     LocalImage(
                         postId = postId,
-                        uri = path,  // ✅ 存儲絕對文件路徑
+                        uri = path,
                         timestamp = System.currentTimeMillis(),
                         isUploaded = false
                     )
@@ -159,7 +158,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     phone = phone,
                     date = date,
                     category = category,
-                    imageUrls = filePaths,  // ✅ 使用絕對文件路徑
+                    imageUrls = filePaths,
                     questions = questionMaps,
                     timestamp = System.currentTimeMillis()
                 )

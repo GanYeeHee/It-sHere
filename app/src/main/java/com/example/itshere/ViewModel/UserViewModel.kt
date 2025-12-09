@@ -22,7 +22,6 @@ class UserViewModel @Inject constructor(
     val state: StateFlow<UserState> = _state
 
     init {
-        // 监听本地用户变化
         viewModelScope.launch {
             userRepository.getAllLocalUsersFlow()
                 .collect { users ->
@@ -31,7 +30,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 同步当前用户
     fun syncCurrentUser() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
@@ -48,13 +46,11 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 刷新当前用户
     private suspend fun refreshCurrentUser() {
         val user = userRepository.getCurrentUser()
         _state.value = _state.value.copy(currentUser = user)
     }
 
-    // 从 Firestore 同步特定用户
     fun syncUserFromFirestore(uid: String) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -70,7 +66,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 更新用户信息
     fun updateUser(user: User) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -87,7 +82,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 清除本地用户数据
     fun clearLocalUsers() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)

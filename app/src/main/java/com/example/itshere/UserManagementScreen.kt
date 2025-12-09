@@ -29,7 +29,6 @@ fun UserManagementScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        // 自动同步当前用户
         viewModel.syncCurrentUser()
     }
 

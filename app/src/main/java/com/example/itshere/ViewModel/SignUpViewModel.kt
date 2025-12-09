@@ -134,7 +134,6 @@ class SignUpViewModel : ViewModel() {
 
                             user?.updateProfile(profileUpdates)?.addOnCompleteListener { updateTask ->
                                 if (updateTask.isSuccessful) {
-                                    // 创建用户数据对象
                                     val userData = User(
                                         uid = userId,
                                         email = currentState.email,
@@ -146,17 +145,13 @@ class SignUpViewModel : ViewModel() {
                                         providerId = "password"
                                     )
 
-                                    // 保存到本地数据库和 Firestore
                                     viewModelScope.launch(Dispatchers.IO) {
                                         try {
-                                            // 获取数据库和仓库
                                             val database = AppDatabase.getInstance(context)
                                             val userRepository = UserRepository(database)
 
-                                            // 保存到本地数据库
                                             database.userDao().insertUser(userData)
 
-                                            // 同步到 Firestore
                                             userRepository.syncUserToFirestore(userData)
 
                                             println("✅ User saved to local database and Firestore:")
