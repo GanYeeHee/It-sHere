@@ -51,6 +51,7 @@ fun AppNavigation() {
                     navController.navigate("create_post/found")
                 },
                 onPostClick = { postId ->
+                    navController.navigate("post_details/$postId")
                 }
             )
         }
@@ -79,6 +80,22 @@ fun AppNavigation() {
                         }
                         launchSingleTop = true
                     }
+                }
+            )
+        }
+
+        composable(
+            route = "post_details/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+
+            PostDetailsScreen(
+                postId = postId,
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }
