@@ -3,15 +3,14 @@ package com.example.itshere
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +34,8 @@ import java.io.File
 @Composable
 fun HomePage(
     onCreatePostClick: () -> Unit = {},
-    onPostClick: (String) -> Unit = {}
+    onPostClick: (String) -> Unit = {},
+    onLogoutSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = viewModel(
@@ -45,7 +45,8 @@ fun HomePage(
     HomePageContent(
         viewModel = viewModel,
         onCreatePostClick = onCreatePostClick,
-        onPostClick = onPostClick
+        onPostClick = onPostClick,
+        onLogoutSuccess = onLogoutSuccess
     )
 }
 
@@ -54,10 +55,15 @@ fun HomePage(
 private fun HomePageContent(
     viewModel: PostViewModel,
     onCreatePostClick: () -> Unit,
-    onPostClick: (String) -> Unit
+    onPostClick: (String) -> Unit,
+    onLogoutSuccess: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
+
+    // 菜單狀態
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -72,6 +78,17 @@ private fun HomePageContent(
                             text = currentUser?.displayName ?: "User",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { showMenu = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.Black
                         )
                     }
                 },
@@ -168,8 +185,243 @@ private fun HomePageContent(
                     }
                 }
             }
+
+            if (showMenu) {
+                SideMenu(
+                    userDisplayName = currentUser?.displayName ?: "Name",
+                    userPhone = currentUser?.phoneNumber ?: "+6012-3456789",
+                    onSavedClick = {
+                        // TODO: Navigate to saved posts
+                        showMenu = false
+                    },
+                    onNotificationClick = {
+                        // TODO: Navigate to notifications
+                        showMenu = false
+                    },
+                    onAboutUsClick = {
+                        // TODO: Navigate to about us
+                        showMenu = false
+                    },
+                    onSettingClick = {
+                        // TODO: Navigate to settings
+                        showMenu = false
+                    },
+                    onLogoutClick = {
+                        showMenu = false
+                        showLogoutDialog = true
+                    },
+                    onDismiss = { showMenu = false }
+                )
+            }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = {
+                        Text(
+                            text = "Logout",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    },
+                    text = {
+                        Text("Are you sure you want to logout?")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showLogoutDialog = false
+                                logoutUser(onLogoutSuccess)
+                            }
+                        ) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showLogoutDialog = false }
+                        ) {
+                            Text("No")
+                        }
+                    }
+                )
+            }
         }
     }
+}
+
+private fun logoutUser(onLogoutSuccess: () -> Unit) {
+    val auth = FirebaseAuth.getInstance()
+    auth.signOut()
+    onLogoutSuccess()
+}
+
+@Composable
+fun SideMenu(
+    userDisplayName: String,
+    userPhone: String,
+    onSavedClick: () -> Unit,
+    onNotificationClick: () -> Unit,
+    onAboutUsClick: () -> Unit,
+    onSettingClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() }
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(280.dp)
+                .align(Alignment.CenterEnd)
+                .clickable { },
+            color = Color.White,
+            shape = RoundedCornerShape(bottomStart = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close menu",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "More",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Column {
+                    Text(
+                        text = userDisplayName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = userPhone,
+                        fontSize = 16.sp,
+                        color = Color(0xFF666666)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Favorite,
+                    text = "Saved",
+                    onClick = onSavedClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Notifications,
+                    text = "Notification",
+                    onClick = onNotificationClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Info,
+                    text = "About Us",
+                    onClick = onAboutUsClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Settings,
+                    text = "Setting",
+                    onClick = onSettingClick
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onLogoutClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFCDD2)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Logout",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color(0xFF666666),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = text,
+                fontSize = 18.sp,
+                color = Color(0xFF666666)
+            )
+        }
+    }
+}
+
+private fun logoutUser() {
+    val auth = FirebaseAuth.getInstance()
+    auth.signOut()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

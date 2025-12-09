@@ -2,22 +2,28 @@ package com.example.itshere
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.itshere.Data.PostType
+import com.google.firebase.auth.FirebaseAuth
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val auth = FirebaseAuth.getInstance()
+
+    val isUserLoggedIn by remember {
+        mutableStateOf(auth.currentUser != null)
+    }
 
     NavHost(
         navController = navController,
-        startDestination = "login"
+        startDestination = if (isUserLoggedIn) "home" else "login"
     ) {
         composable("login") {
             LoginScreen(
@@ -52,6 +58,11 @@ fun AppNavigation() {
                 },
                 onPostClick = { postId ->
                     navController.navigate("post_details/$postId")
+                },
+                onLogoutSuccess = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
             )
         }
