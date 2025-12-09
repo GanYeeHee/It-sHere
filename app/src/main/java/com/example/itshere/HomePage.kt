@@ -179,8 +179,6 @@ fun PostCardGrid(
     onFavoriteClick: () -> Unit = {},
     onClick: () -> Unit = {}
 ) {
-    var isFavorite by remember { mutableStateOf(false) }
-
     val timeAgo = remember(post.timestamp) {
         val now = System.currentTimeMillis()
         val diff = now - post.timestamp
@@ -313,16 +311,13 @@ fun PostCardGrid(
                     )
 
                     IconButton(
-                        onClick = {
-                            isFavorite = !isFavorite
-                            onFavoriteClick()
-                        },
+                        onClick = onFavoriteClick,
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector = if (post.isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.outline,
+                            tint = if (post.isFavorite) Color.Red else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp)
                         )
                     }

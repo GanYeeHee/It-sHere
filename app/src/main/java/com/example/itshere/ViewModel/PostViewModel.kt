@@ -32,6 +32,9 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val _state = MutableStateFlow(PostState())
     val state: StateFlow<PostState> = _state
 
+    private val _favorites = MutableStateFlow<Set<String>>(emptySet())
+    val favorites: StateFlow<Set<String>> = _favorites
+
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     private val database = AppDatabase.getInstance(context)
@@ -42,6 +45,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
     init {
         Log.d(TAG, "🎯 PostViewModel initialized - LOCAL FILE PATH VERSION")
         loadPosts()
+        loadFavorites()
     }
 
     fun loadPosts() {
@@ -62,7 +66,9 @@ class PostViewModel(private val context: Context) : ViewModel() {
 
                             val posts = snapshot?.documents?.mapNotNull { doc ->
                                 try {
-                                    doc.toObject(PostData::class.java)?.copy(id = doc.id)
+                                    val post = doc.toObject(PostData::class.java)?.copy(id = doc.id)
+                                    // 設置收藏狀態
+                                    post?.copy(isFavorite = _favorites.value.contains(post.id))
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Error parsing post: ${e.message}")
                                     null
@@ -82,6 +88,32 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     isLoading = false,
                     error = e.message
                 )
+            }
+        }
+    }
+
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            val currentUser = auth.currentUser ?: return@launch
+            try {
+                firestore.collection("users")
+                    .document(currentUser.uid)
+                    .collection("favorites")
+                    .addSnapshotListener { snapshot, _ ->
+                        snapshot?.let {
+                            val favoriteIds = it.documents.map { doc -> doc.id }.toSet()
+                            _favorites.value = favoriteIds
+                            Log.d(TAG, "Loaded ${favoriteIds.size} favorites")
+
+                            // 更新 posts 中的收藏狀態
+                            val updatedPosts = _state.value.posts.map { post ->
+                                post.copy(isFavorite = favoriteIds.contains(post.id))
+                            }
+                            _state.value = _state.value.copy(posts = updatedPosts)
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading favorites: ${e.message}")
             }
         }
     }
@@ -160,7 +192,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     category = category,
                     imageUrls = filePaths,
                     questions = questionMaps,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = System.currentTimeMillis(),
+                    isFavorite = false
                 )
 
                 Log.d(TAG, "☁️ Saving post to Firestore")
@@ -242,9 +275,26 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val doc = favoriteRef.get().await()
                 if (doc.exists()) {
                     favoriteRef.delete().await()
+                    // 更新本地狀態
+                    val newFavorites = _favorites.value - postId
+                    _favorites.value = newFavorites
                 } else {
                     favoriteRef.set(mapOf("timestamp" to System.currentTimeMillis())).await()
+                    // 更新本地狀態
+                    val newFavorites = _favorites.value + postId
+                    _favorites.value = newFavorites
                 }
+
+                // 更新 posts 中的收藏狀態
+                val updatedPosts = _state.value.posts.map { post ->
+                    if (post.id == postId) {
+                        post.copy(isFavorite = !post.isFavorite)
+                    } else {
+                        post
+                    }
+                }
+                _state.value = _state.value.copy(posts = updatedPosts)
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error toggling favorite: ${e.message}")
             }

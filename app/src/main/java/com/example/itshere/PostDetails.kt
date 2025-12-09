@@ -1,5 +1,8 @@
 package com.example.itshere
 
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -40,7 +43,10 @@ fun PostDetailsScreen(
     )
 
     val state by viewModel.state.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
     val post = state.posts.find { it.id == postId }
+
+    val isFavorite = favorites.contains(postId)
 
     if (post == null) {
         // Loading or error state
@@ -54,11 +60,47 @@ fun PostDetailsScreen(
     }
 
     PostDetailsContent(
-        post = post,
+        post = post.copy(isFavorite = isFavorite),
         onBackClick = onBackClick,
-        onShareClick = { },
-        onFavoriteClick = { viewModel.toggleFavorite(post.id) }
+        onShareClick = {
+            sharePost(context, post)
+        },
+        onFavoriteClick = {
+            viewModel.toggleFavorite(postId)
+        }
     )
+}
+
+private fun sharePost(context: Context, post: PostData) {
+    val shareText = buildString {
+        append("Check out this post on It's Here!\n\n")
+        append("Title: ${post.title}\n")
+        append("Type: ${post.postType}\n")
+        if (post.description.isNotBlank()) {
+            append("Description: ${post.description}\n")
+        }
+        if (post.category.isNotBlank()) {
+            append("Category: ${post.category}\n")
+        }
+        append("\nShared via It's Here App")
+    }
+
+    val shareIntent = Intent().apply {
+        action = Intent.ACTION_SEND
+        putExtra(Intent.EXTRA_TEXT, shareText)
+        type = "text/plain"
+    }
+
+    try {
+        context.startActivity(
+            Intent.createChooser(
+                shareIntent,
+                "Share post via"
+            )
+        )
+    } catch (e: Exception) {
+        Toast.makeText(context, "Error sharing: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
 }
 
 @Composable
@@ -68,7 +110,6 @@ private fun PostDetailsContent(
     onShareClick: () -> Unit,
     onFavoriteClick: (Boolean) -> Unit
 ) {
-    var isFavorite by remember { mutableStateOf(post.isFavorite) }
     var showQuestionDialog by remember { mutableStateOf(false) }
     var showContactDialog by remember { mutableStateOf(false) }
 
@@ -76,7 +117,7 @@ private fun PostDetailsContent(
         containerColor = Color.White,
         bottomBar = {
             BottomActionSection(
-                isFavorite = isFavorite,
+                isFavorite = post.isFavorite,
                 postType = post.postType,
                 onActionClick = {
                     if (post.postType == "FOUND") {
@@ -86,9 +127,8 @@ private fun PostDetailsContent(
                     }
                 },
                 onShareClick = onShareClick,
-                onFavoriteClick = { newState ->
-                    isFavorite = newState
-                    onFavoriteClick(newState)
+                onFavoriteClick = {
+                    onFavoriteClick(!post.isFavorite)
                 }
             )
         }
