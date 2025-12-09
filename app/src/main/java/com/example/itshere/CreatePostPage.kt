@@ -1,9 +1,11 @@
 package com.example.itshere
 
 import android.content.Context
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -31,6 +34,9 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,8 +48,10 @@ import com.example.itshere.Data.PostType
 import com.example.itshere.Data.QuestionAnswer
 import com.example.itshere.ViewModel.PostViewModel
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePostPage(
@@ -83,6 +91,24 @@ fun CreatePostPage(
                 ImageItem(uri = uri.toString())
             }
             selectedImages = selectedImages + newImages
+        }
+    )
+
+    val today = System.currentTimeMillis()
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = null,
+        initialDisplayedMonthMillis = null,
+        yearRange = IntRange(2020, LocalDate.now().year),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                return utcTimeMillis <= today
+            }
+
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun isSelectableYear(year: Int): Boolean {
+                return year <= LocalDate.now().year
+            }
         }
     )
 
@@ -263,9 +289,12 @@ fun CreatePostPage(
                         Spacer(modifier = Modifier.height(8.dp))
                         CustomTextField(
                             value = phone,
-                            onValueChange = { phone = it },
+                            onValueChange = { newValue ->
+                                phone = newValue.filter { it.isDigit() }
+                            },
                             placeholder = "60112345678",
                             modifier = Modifier.fillMaxWidth(),
+                            keyboardType = KeyboardType.Phone,
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -308,19 +337,25 @@ fun CreatePostPage(
                     )
 
                     if (showDatePicker) {
-                        val datePickerState = rememberDatePickerState()
                         DatePickerDialog(
                             onDismissRequest = { showDatePicker = false },
                             confirmButton = {
                                 TextButton(
                                     onClick = {
                                         datePickerState.selectedDateMillis?.let { millis ->
-                                            val formatter =
-                                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                            date = formatter.format(Date(millis))
+                                            if (millis <= today) {
+                                                val formatter =
+                                                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                                date = formatter.format(Date(millis))
+                                            } else {
+                                                val formatter =
+                                                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                                date = formatter.format(Date(today))
+                                            }
                                         }
                                         showDatePicker = false
-                                    }
+                                    },
+                                    enabled = datePickerState.selectedDateMillis != null
                                 ) {
                                     Text("OK")
                                 }
@@ -570,6 +605,7 @@ fun CustomTextField(
     modifier: Modifier = Modifier,
     isTitle: Boolean = false,
     readOnly: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -599,6 +635,11 @@ fun CustomTextField(
                     color = Color.Black,
                     fontSize = if (isTitle) 16.sp else 14.sp,
                     fontWeight = if (isTitle) FontWeight.Medium else FontWeight.Normal
+                ),
+                keyboardOptions = KeyboardOptions( // 设置键盘选项
+                    keyboardType = keyboardType,
+                    imeAction = ImeAction.Done,
+                    capitalization = KeyboardCapitalization.None
                 ),
                 cursorBrush = SolidColor(Color(0xFF824DFF)),
                 readOnly = readOnly,
@@ -900,6 +941,7 @@ fun CompactQuestionAnswerField(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun CreatePostPagePreview() {

@@ -1,18 +1,15 @@
 package com.example.itshere
 
-import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,11 +20,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImagePainter
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
 import com.example.itshere.ViewModel.PostViewModel
@@ -38,7 +35,9 @@ import java.io.File
 @Composable
 fun HomePage(
     onCreatePostClick: () -> Unit = {},
-    onPostClick: (String) -> Unit = {}
+    onPostClick: (String) -> Unit = {},
+    onLogoutSuccess: () -> Unit = {},
+    navController: NavHostController
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = viewModel(
@@ -46,21 +45,28 @@ fun HomePage(
     )
 
     HomePageContent(
+        navController = navController,
         viewModel = viewModel,
         onCreatePostClick = onCreatePostClick,
-        onPostClick = onPostClick
+        onPostClick = onPostClick,
+        onLogoutSuccess = onLogoutSuccess
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomePageContent(
+    navController: NavController,
     viewModel: PostViewModel,
     onCreatePostClick: () -> Unit,
-    onPostClick: (String) -> Unit
+    onPostClick: (String) -> Unit,
+    onLogoutSuccess: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -75,6 +81,17 @@ private fun HomePageContent(
                             text = currentUser?.displayName ?: "User",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { showMenu = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.Black
                         )
                     }
                 },
@@ -171,8 +188,243 @@ private fun HomePageContent(
                     }
                 }
             }
+
+            if (showMenu) {
+                SideMenu(
+                    userDisplayName = currentUser?.displayName ?: "Name",
+                    userPhone = currentUser?.phoneNumber ?: "+6012-3456789",
+                    onSavedClick = {
+                        // TODO: Navigate to saved posts
+                        showMenu = false
+                    },
+                    onNotificationClick = {
+                        navController.navigate("notifications")
+                        showMenu = false
+                    },
+                    onAboutUsClick = {
+                        navController.navigate("about_us")
+                        showMenu = false
+                    },
+                    onSettingClick = {
+                        navController.navigate("settings")
+                        showMenu = false
+                    },
+                    onLogoutClick = {
+                        showMenu = false
+                        showLogoutDialog = true
+                    },
+                    onDismiss = { showMenu = false }
+                )
+            }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = {
+                        Text(
+                            text = "Logout",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    },
+                    text = {
+                        Text("Are you sure you want to logout?")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showLogoutDialog = false
+                                logoutUser(onLogoutSuccess)
+                            }
+                        ) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showLogoutDialog = false }
+                        ) {
+                            Text("No")
+                        }
+                    }
+                )
+            }
         }
     }
+}
+
+private fun logoutUser(onLogoutSuccess: () -> Unit) {
+    val auth = FirebaseAuth.getInstance()
+    auth.signOut()
+    onLogoutSuccess()
+}
+
+@Composable
+fun SideMenu(
+    userDisplayName: String,
+    userPhone: String,
+    onSavedClick: () -> Unit,
+    onNotificationClick: () -> Unit,
+    onAboutUsClick: () -> Unit,
+    onSettingClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() }
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(280.dp)
+                .align(Alignment.CenterEnd)
+                .clickable { },
+            color = Color.White,
+            shape = RoundedCornerShape(bottomStart = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close menu",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "More",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Column {
+                    Text(
+                        text = userDisplayName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = userPhone,
+                        fontSize = 16.sp,
+                        color = Color(0xFF666666)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Favorite,
+                    text = "Saved",
+                    onClick = onSavedClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Notifications,
+                    text = "Notification",
+                    onClick = onNotificationClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Info,
+                    text = "About Us",
+                    onClick = onAboutUsClick
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MenuItem(
+                    icon = Icons.Default.Settings,
+                    text = "Setting",
+                    onClick = onSettingClick
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onLogoutClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFCDD2)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Logout",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color(0xFF666666),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = text,
+                fontSize = 18.sp,
+                color = Color(0xFF666666)
+            )
+        }
+    }
+}
+
+private fun logoutUser() {
+    val auth = FirebaseAuth.getInstance()
+    auth.signOut()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -182,8 +434,6 @@ fun PostCardGrid(
     onFavoriteClick: () -> Unit = {},
     onClick: () -> Unit = {}
 ) {
-    var isFavorite by remember { mutableStateOf(false) }
-
     val timeAgo = remember(post.timestamp) {
         val now = System.currentTimeMillis()
         val diff = now - post.timestamp
@@ -214,63 +464,15 @@ fun PostCardGrid(
             ) {
                 if (post.imageUrls.isNotEmpty()) {
                     val imagePath = post.imageUrls.first()
-
                     val imageFile = File(imagePath)
-                    val isValidPath = imageFile.exists() && imageFile.isFile
 
-                    if (isValidPath) {
-                        val painter = rememberAsyncImagePainter(
-                            model = imageFile
+                    if (imageFile.exists() && imageFile.canRead()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = imageFile),
+                            contentDescription = "Post image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-
-                        when (painter.state) {
-                            is AsyncImagePainter.State.Loading -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.LightGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
-                                        color = Color(0xFF7C4DFF)
-                                    )
-                                }
-                            }
-                            is AsyncImagePainter.State.Error -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color(0xFF87CEEB)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.BrokenImage,
-                                            contentDescription = "Failed to load",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                        Text(
-                                            text = "Load failed",
-                                            color = Color.White,
-                                            fontSize = 10.sp
-                                        )
-                                    }
-                                }
-                            }
-                            else -> {
-                                Image(
-                                    painter = painter,
-                                    contentDescription = "Post image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
                     } else {
                         Box(
                             modifier = Modifier
@@ -364,69 +566,18 @@ fun PostCardGrid(
                     )
 
                     IconButton(
-                        onClick = {
-                            isFavorite = !isFavorite
-                            onFavoriteClick()
-                        },
+                        onClick = onFavoriteClick,
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector = if (post.isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.outline,
+                            tint = if (post.isFavorite) Color.Red else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomePagePreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            HomePage(
-                onCreatePostClick = {},
-                onPostClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PostCardGridPreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier
-                .width(180.dp)
-                .padding(8.dp),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            PostCardGrid(
-                post = PostData(
-                    id = "1",
-                    userId = "user123",
-                    userName = "JohnDoe",
-                    title = "Found iPhone 13 Pro",
-                    description = "Found near the library",
-                    postType = "FOUND",
-                    phone = "",
-                    date = "05/12/2024",
-                    category = "Electronic",
-                    imageUrls = listOf("https://example.com/image.jpg"),
-                    questions = emptyList(),
-                    timestamp = System.currentTimeMillis() - 86400000
-                ),
-                onFavoriteClick = {},
-                onClick = {}
-            )
         }
     }
 }

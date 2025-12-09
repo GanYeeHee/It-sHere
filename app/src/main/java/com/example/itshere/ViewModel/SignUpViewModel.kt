@@ -1,10 +1,14 @@
-// SignUpViewModel.kt
 package com.example.itshere.ViewModel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.itshere.Data.User
+import com.example.itshere.Dao.AppDatabase
+import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -66,6 +70,7 @@ class SignUpViewModel : ViewModel() {
     }
 
     fun signUp(
+        context: Context,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -120,6 +125,7 @@ class SignUpViewModel : ViewModel() {
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             val user = auth.currentUser
+                            val userId = user?.uid ?: ""
 
                             // Update profile with name
                             val profileUpdates = UserProfileChangeRequest.Builder()
@@ -128,29 +134,68 @@ class SignUpViewModel : ViewModel() {
 
                             user?.updateProfile(profileUpdates)?.addOnCompleteListener { updateTask ->
                                 if (updateTask.isSuccessful) {
+                                    val userData = User(
+                                        uid = userId,
+                                        email = currentState.email,
+                                        displayName = currentState.name,
+                                        phoneNumber = currentState.phone,
+                                        isEmailVerified = false,
+                                        createdAt = System.currentTimeMillis(),
+                                        lastSignInTime = System.currentTimeMillis(),
+                                        providerId = "password"
+                                    )
+
+                                    viewModelScope.launch(Dispatchers.IO) {
+                                        try {
+                                            val database = AppDatabase.getInstance(context)
+                                            val userRepository = UserRepository(database)
+
+                                            database.userDao().insertUser(userData)
+
+                                            userRepository.syncUserToFirestore(userData)
+
+                                            println("✅ User saved to local database and Firestore:")
+                                            println("   UID: $userId")
+                                            println("   Email: ${currentState.email}")
+                                            println("   Name: ${currentState.name}")
+                                        } catch (e: Exception) {
+                                            println("❌ Error saving user: ${e.message}")
+                                            e.printStackTrace()
+                                        }
+                                    }
+
                                     // Send verification email
                                     user.sendEmailVerification()
                                         .addOnCompleteListener { emailTask ->
                                             _state.value = _state.value.copy(isLoading = false)
                                             if (emailTask.isSuccessful) {
+                                                println("✅ Verification email sent to ${currentState.email}")
                                                 onSuccess()
                                             } else {
-                                                onError("Account created but failed to send verification email")
+                                                val errorMsg = "Account created but failed to send verification email"
+                                                println("❌ $errorMsg")
+                                                onError(errorMsg)
                                             }
                                         }
                                 } else {
                                     _state.value = _state.value.copy(isLoading = false)
-                                    onError("Failed to update profile")
+                                    val errorMsg = "Failed to update profile: ${updateTask.exception?.message}"
+                                    println("❌ $errorMsg")
+                                    onError(errorMsg)
                                 }
                             }
                         } else {
                             _state.value = _state.value.copy(isLoading = false)
-                            onError(task.exception?.message ?: "Sign up failed")
+                            val errorMsg = task.exception?.message ?: "Sign up failed"
+                            println("❌ Sign up failed: $errorMsg")
+                            onError(errorMsg)
                         }
                     }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false)
-                onError(e.message ?: "Sign up failed")
+                val errorMsg = e.message ?: "Sign up failed"
+                println("❌ Sign up exception: $errorMsg")
+                onError(errorMsg)
             }
         }
     }

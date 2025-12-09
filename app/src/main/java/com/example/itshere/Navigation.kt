@@ -1,16 +1,25 @@
 package com.example.itshere
 
-import androidx.compose.runtime.Composable
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.runtime.*
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.itshere.Data.PostType
+import com.google.firebase.auth.FirebaseAuth
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val auth = FirebaseAuth.getInstance()
+
+    val isUserLoggedIn by remember {
+        mutableStateOf(auth.currentUser != null)
+    }
 
     NavHost(
         navController = navController,
@@ -44,10 +53,17 @@ fun AppNavigation() {
 
         composable("home") {
             HomePage(
+                navController = navController,
                 onCreatePostClick = {
                     navController.navigate("create_post/found")
                 },
                 onPostClick = { postId ->
+                    navController.navigate("post_details/$postId")
+                },
+                onLogoutSuccess = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
             )
         }
@@ -78,6 +94,42 @@ fun AppNavigation() {
                     }
                 }
             )
+        }
+
+        composable(
+            route = "post_details/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+
+            PostDetailsScreen(
+                postId = postId,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("about_us") {
+            AboutUsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("settings") {
+            SettingsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("notification"){
+            NotificationsScreen()
         }
     }
 }
