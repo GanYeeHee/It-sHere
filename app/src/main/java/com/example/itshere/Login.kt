@@ -53,7 +53,7 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val googleState by googleSignInViewModel.state.collectAsState()
     val auth = FirebaseAuth.getInstance()
-    val context = LocalContext.current  // 获取 Context
+    val context = LocalContext.current
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()

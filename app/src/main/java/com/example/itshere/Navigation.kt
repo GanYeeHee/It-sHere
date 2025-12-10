@@ -3,12 +3,14 @@ package com.example.itshere
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.itshere.Data.PostType
+import com.example.itshere.ViewModel.LoginViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -16,7 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
-
+    val loginViewModel: LoginViewModel = viewModel()
     val isUserLoggedIn by remember {
         mutableStateOf(auth.currentUser != null)
     }
@@ -27,7 +29,9 @@ fun AppNavigation() {
     ) {
         composable("login") {
             LoginScreen(
+                viewModel = loginViewModel,
                 onNavigateToSignUp = {
+                    loginViewModel.clearForm()
                     navController.navigate("signup")
                 },
                 onLoginSuccess = {
@@ -47,6 +51,10 @@ fun AppNavigation() {
                     navController.navigate("home") {
                         popUpTo("signup") { inclusive = true }
                     }
+                },
+                onGoToLoginWithPrefill = { email, password ->
+                    loginViewModel.prefillCredentials(email, password)
+                    navController.popBackStack("login", false)
                 }
             )
         }

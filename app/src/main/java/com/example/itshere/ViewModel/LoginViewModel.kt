@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class LoginState(
@@ -157,6 +158,26 @@ class LoginViewModel : ViewModel() {
                 println("❌ Login exception: $errorMsg")
                 onError(errorMsg)
             }
+        }
+    }
+
+    fun prefillCredentials(email: String, password: String) {
+        _state.update {
+            it.copy(
+                email = email,
+                password = password
+            )
+        }
+    }
+
+    fun clearForm() {
+        _state.update {
+            it.copy(
+                email = "",
+                password = "",
+                emailError = null,
+                passwordError = null
+            )
         }
     }
 }

@@ -24,14 +24,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.itshere.ViewModel.LoginViewModel
 import com.example.itshere.ViewModel.SignUpViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun SignUpScreen(
     viewModel: SignUpViewModel = viewModel(),
+    loginViewModel: LoginViewModel = viewModel(),
     onNavigateBack: () -> Unit,
-    onSignUpSuccess: () -> Unit
+    onSignUpSuccess: () -> Unit,
+    onGoToLoginWithPrefill: (email: String, password: String) -> Unit
 ) {
     val context = LocalContext.current
     var passwordVisible by remember { mutableStateOf(false) }
@@ -414,18 +417,31 @@ fun SignUpScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showVerificationSentDialog = false
-                        auth.signOut()
-                        onNavigateBack()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF9FA8DA)
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text("Go to Login", color = Color.White)
+                Column {
+                    Button(
+                        onClick = {
+                            showVerificationSentDialog = false
+                            auth.signOut()
+                            onGoToLoginWithPrefill(state.email, state.password)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF9FA8DA)
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Go to Login", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            showVerificationSentDialog = false
+                            onNavigateBack()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel", color = Color(0xFF666666))
+                    }
                 }
             }
         )
@@ -465,6 +481,9 @@ fun SignUpScreen(
 internal fun SignUpScreenPreview() {
     SignUpScreen(
         onNavigateBack = {},
-        onSignUpSuccess = {}
+        onSignUpSuccess = {},
+        viewModel = TODO(),
+        loginViewModel = TODO(),
+        onGoToLoginWithPrefill ={email, password ->}
     )
 }
