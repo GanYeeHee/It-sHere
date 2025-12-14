@@ -38,6 +38,12 @@ fun AppNavigation() {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
+                },
+
+                onNavigateToAdmin = {
+                    navController.navigate("admin_home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             )
         }
@@ -55,6 +61,18 @@ fun AppNavigation() {
                 onGoToLoginWithPrefill = { email, password ->
                     loginViewModel.prefillCredentials(email, password)
                     navController.popBackStack("login", false)
+                }
+            )
+        }
+
+        composable("admin_home") {
+            // Note: We need to pass a way for AdminHome to log out,
+            // which navigates back to the login screen.
+            AdminHome(
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             )
         }

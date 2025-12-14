@@ -3,7 +3,7 @@ package com.example.itshere.ViewModel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Data.User
+import com.example.itshere.Data.Entity.User
 import com.example.itshere.Dao.AppDatabase
 import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth

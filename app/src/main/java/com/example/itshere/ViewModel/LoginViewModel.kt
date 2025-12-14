@@ -99,7 +99,7 @@ class LoginViewModel : ViewModel() {
                                 viewModelScope.launch(Dispatchers.IO) {
                                     try {
                                         // 创建用户对象
-                                        val userData = com.example.itshere.Data.User(
+                                        val userData = com.example.itshere.Data.Entity.User(
                                             uid = userId,
                                             email = userEmail,
                                             displayName = userName,

@@ -1,12 +1,16 @@
-package com.example.itshere.Dao
+package com.example.itshere.Data.Dao
 
-import androidx.room.*
-import com.example.itshere.Data.User
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.itshere.Data.Entity.User
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertUser(user: User)
 
     @Update

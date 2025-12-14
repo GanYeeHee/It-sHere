@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.2"
+agp = "8.12.3"
 kotlin = "2.0.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -16,6 +16,7 @@ firebaseAuthCommon = "9.8.0"
 firebaseStorageKtx = "22.0.1"
 roomCommonJvm = "2.8.4"
 roomRuntimeAndroid = "2.8.4"
+ksp = "2.0.21-1.0.27"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -45,5 +46,6 @@ androidx-room-runtime-android = { group = "androidx.room", name = "room-runtime-
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+
 

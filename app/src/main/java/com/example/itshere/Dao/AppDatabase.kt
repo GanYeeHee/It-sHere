@@ -4,7 +4,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import android.content.Context
-import com.example.itshere.Data.User
+import com.example.itshere.Data.Dao.LocalImageDao
+import com.example.itshere.Data.Dao.UserDao
+import com.example.itshere.Data.Entity.LocalImage
+import com.example.itshere.Data.Entity.User
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.internal.synchronized
 

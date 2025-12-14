@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +58,8 @@ fun Greeting(
 
 @Composable
 fun AdminHome(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLogout: () -> Unit
 ) {
     Column(modifier
         .padding(top = 60.dp)
@@ -67,7 +67,7 @@ fun AdminHome(
         Row {
             IconButton(
                 modifier = modifier.padding(end = 16.dp, bottom = 16.dp),
-                onClick = {}
+                onClick = onLogout //demo logout first
             ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
@@ -200,6 +200,6 @@ fun AdminHome(
 @Composable
 fun PreAdminHome() {
     ItsHereTheme {
-        AdminHome()
+        AdminHome(onLogout = {})
     }
 }

@@ -1,7 +1,7 @@
 // file name: UserRepository.kt
 package com.example.itshere.Repository
 
-import com.example.itshere.Data.User
+import com.example.itshere.Data.Entity.User
 import com.example.itshere.Dao.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -29,7 +29,8 @@ class UserRepository @Inject constructor(
             photoUrl = firebaseUser.photoUrl?.toString(),
             isEmailVerified = firebaseUser.isEmailVerified,
             createdAt = firebaseUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
-            lastSignInTime = firebaseUser.metadata?.lastSignInTimestamp ?: System.currentTimeMillis(),
+            lastSignInTime = firebaseUser.metadata?.lastSignInTimestamp
+                ?: System.currentTimeMillis(),
             providerId = firebaseUser.providerId,
             isAnonymous = firebaseUser.isAnonymous
         )

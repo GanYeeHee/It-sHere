@@ -35,12 +35,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 
+private const val ADMIN_EMAIL = "admin25@itshere.com"
+private const val ADMIN_PASSWORD = "itsMin!pro25"
+
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     googleSignInViewModel: GoogleSignInViewModel = viewModel(),
     onNavigateToSignUp: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToAdmin: () -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     var showEmailNotVerifiedDialog by remember { mutableStateOf(false) }
@@ -262,15 +266,20 @@ fun LoginScreen(
                 // Login button - 修复这里，传递 context
                 Button(
                     onClick = {
-                        viewModel.login(
-                            context = context,  // 传递 context
-                            onSuccess = onLoginSuccess,
-                            onEmailNotVerified = { showEmailNotVerifiedDialog = true },
-                            onError = { error ->
-                                errorMessage = error
-                                showErrorDialog = true
-                            }
-                        )
+                        if (state.email == ADMIN_EMAIL && state.password == ADMIN_PASSWORD) {
+                            onNavigateToAdmin() // go to admin
+                        } else {
+                            // proceed firebase Login
+                            viewModel.login(
+                                context = context,
+                                onSuccess = onLoginSuccess,
+                                onEmailNotVerified = { showEmailNotVerifiedDialog = true },
+                                onError = { error ->
+                                    errorMessage = error
+                                    showErrorDialog = true
+                                }
+                            )
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
