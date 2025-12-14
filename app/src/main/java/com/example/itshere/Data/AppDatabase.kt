@@ -1,9 +1,10 @@
-package com.example.itshere.Dao
+package com.example.itshere.Data
 
+import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import android.content.Context
+import com.example.itshere.Data.Dao.AdminDao
 import com.example.itshere.Data.Dao.LocalImageDao
 import com.example.itshere.Data.Dao.UserDao
 import com.example.itshere.Data.Entity.LocalImage
@@ -22,6 +23,7 @@ import kotlinx.coroutines.internal.synchronized
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun localImageDao(): LocalImageDao
+    abstract fun adminDao(): AdminDao
 
     companion object {
         @Volatile

@@ -2,7 +2,7 @@
 package com.example.itshere.Repository
 
 import com.example.itshere.Data.Entity.User
-import com.example.itshere.Dao.AppDatabase
+import com.example.itshere.Data.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow

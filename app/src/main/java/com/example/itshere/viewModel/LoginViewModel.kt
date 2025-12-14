@@ -1,10 +1,10 @@
 // file name: LoginViewModel.kt
-package com.example.itshere.ViewModel
+package com.example.itshere.viewModel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Dao.AppDatabase
+import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +22,13 @@ data class LoginState(
 )
 
 class LoginViewModel : ViewModel() {
+
+
     private val _state = MutableStateFlow(LoginState())
     val state: StateFlow<LoginState> = _state
 
     private val auth = FirebaseAuth.getInstance()
+
 
     fun onEmailChange(email: String) {
         _state.value = _state.value.copy(
@@ -180,4 +183,6 @@ class LoginViewModel : ViewModel() {
             )
         }
     }
+
+
 }

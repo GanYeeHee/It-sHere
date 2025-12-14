@@ -24,8 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.itshere.ViewModel.LoginViewModel
-import com.example.itshere.ViewModel.SignUpViewModel
+import com.example.itshere.viewModel.LoginViewModel
+import com.example.itshere.viewModel.SignUpViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable

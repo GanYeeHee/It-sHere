@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
-import com.example.itshere.ViewModel.PostViewModel
-import com.example.itshere.ViewModel.PostViewModelFactory
+import com.example.itshere.viewModel.PostViewModel
+import com.example.itshere.viewModel.PostViewModelFactory
 import java.io.File
 
 @Composable

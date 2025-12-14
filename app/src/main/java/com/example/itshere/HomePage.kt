@@ -27,8 +27,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
-import com.example.itshere.ViewModel.PostViewModel
-import com.example.itshere.ViewModel.PostViewModelFactory
+import com.example.itshere.viewModel.PostViewModel
+import com.example.itshere.viewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import java.io.File
 
