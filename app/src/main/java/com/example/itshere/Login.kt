@@ -1,5 +1,6 @@
 package com.example.itshere
 
+import android.app.Application
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -26,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.itshere.ui.theme.ItsHereTheme
 import com.example.itshere.viewModel.GoogleSignInViewModel
 import com.example.itshere.viewModel.LoginViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -581,180 +583,34 @@ fun LoginScreen(
     }
 }
 
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.img),
-            contentDescription = "background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+    // 1. Create the mocked Application instance for the AndroidViewModel
+    val application = remember {
+        context.applicationContext as Application
+    }
+
+    // 2. Instantiate LoginViewModel, passing the required Application object
+    val mockLoginViewModel = remember {
+        LoginViewModel(application)
+    }
+
+    // 3. Instantiate GoogleSignInViewModel with NO arguments (as per its definition)
+    val mockGoogleViewModel = remember {
+        GoogleSignInViewModel() // <-- ZERO arguments passed here!
+    }
+
+    ItsHereTheme {
+        LoginScreen(
+            viewModel = mockLoginViewModel,
+            googleSignInViewModel = mockGoogleViewModel,
+            onLoginSuccess = {},
+            onNavigateToSignUp = {},
+            onNavigateToAdmin = {}
         )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                // Header
-                Text(
-                    text = "Hi,",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "welcome",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "back",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                Text(
-                    text = "Log In.",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Email field
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = "Email",
-                        fontSize = 14.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color(0xFFFFCDD2),
-                            unfocusedContainerColor = Color(0xFFFFCDD2),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Gray
-                        ),
-                        shape = RoundedCornerShape(20.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Password field
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = "Password",
-                        fontSize = 14.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color(0xFFFFCDD2),
-                            unfocusedContainerColor = Color(0xFFFFCDD2),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black
-                        ),
-                        shape = RoundedCornerShape(20.dp),
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = Color.Black
-                                )
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Login button
-                Button(
-                    onClick = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF9FA8DA)
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        text = "Login",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Sign up link
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Do not have an account? ",
-                        color = Color.Black,
-                        fontSize = 14.sp
-                    )
-                    TextButton(
-                        onClick = {},
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(
-                            text = "Sign Up",
-                            color = Color(0xFF5C6BC0),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
     }
 }

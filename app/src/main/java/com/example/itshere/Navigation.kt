@@ -355,7 +355,6 @@ fun AdminHomeScreenWrapper(
         content = {
             // AdminHome needs the function to trigger the drawer open
             AdminHome(
-                onLogout = onLogout,
                 onOpenDrawer = {
                     scope.launch {
                         drawerState.open()

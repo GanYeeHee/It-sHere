@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.itshere.ui.theme.ItsHereTheme
 import com.example.itshere.viewModel.LoginViewModel
 import com.example.itshere.viewModel.SignUpViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -32,8 +33,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun SignUpScreen(
     viewModel: SignUpViewModel = viewModel(),
     loginViewModel: LoginViewModel = viewModel(),
-    onNavigateBack: () -> Unit,
     onSignUpSuccess: () -> Unit,
+    onNavigateBack: () -> Unit,
     onGoToLoginWithPrefill: (email: String, password: String) -> Unit
 ) {
     val context = LocalContext.current
@@ -476,14 +477,23 @@ fun SignUpScreen(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
 @Composable
-internal fun SignUpScreenPreview() {
-    SignUpScreen(
-        onNavigateBack = {},
-        onSignUpSuccess = {},
-        viewModel = TODO(),
-        loginViewModel = TODO(),
-        onGoToLoginWithPrefill ={email, password ->}
-    )
+fun SignUpScreenPreview() {
+
+    val mockNavigateBack: () -> Unit = {}
+    val mockGoToLogin: (String, String) -> Unit = { _, _ -> }
+
+    ItsHereTheme{
+        SignUpScreen(
+
+            onNavigateBack = mockNavigateBack,
+            onGoToLoginWithPrefill = mockGoToLogin,
+            onSignUpSuccess = {}
+        )
+    }
+
 }

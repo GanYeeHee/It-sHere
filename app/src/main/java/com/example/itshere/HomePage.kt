@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -310,7 +311,7 @@ fun SideMenu(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "More",
+                    text = "Username",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -422,10 +423,6 @@ fun MenuItem(
     }
 }
 
-private fun logoutUser() {
-    val auth = FirebaseAuth.getInstance()
-    auth.signOut()
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -580,4 +577,14 @@ fun PostCardGrid(
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreSideMenu() {
+    SideMenu(onDismiss = {}, onLogoutClick = {},
+        onSavedClick = {},
+        onNotificationClick = {},
+        onAboutUsClick = {},
+        onSettingClick = {}, userPhone = "", userDisplayName = "")
 }

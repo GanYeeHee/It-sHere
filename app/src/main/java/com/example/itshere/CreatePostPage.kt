@@ -556,8 +556,8 @@ fun WrapContentRow(
         var currentRowWidth = 0
         var currentRowHeight = 0
         var totalHeight = 0
-        var xPositions = mutableListOf<Int>()
-        var yPositions = mutableListOf<Int>()
+        val xPositions = mutableListOf<Int>()
+        val yPositions = mutableListOf<Int>()
 
         val placeables = measurables.map { measurable ->
             measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
@@ -943,12 +943,5 @@ fun CompactQuestionAnswerField(
 @Preview(showBackground = true)
 @Composable
 fun CreatePostPagePreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
-        ) {
-            CreatePostPage()
-        }
-    }
+    CreatePostPage(onPostSuccess = {}, onBackClick = {})
 }
