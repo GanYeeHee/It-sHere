@@ -1,6 +1,7 @@
 package com.example.itshere
 
 
+import android.R.attr.fontWeight
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -202,10 +203,166 @@ fun AdminHome(
     }
 }
 
+@Composable
+fun SideBar(modifier: Modifier = Modifier) {
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+
+                .clickable {}
+        ) {
+            Image(
+                painter = painterResource(R.drawable.people),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(70.dp)
+            )
+
+            Column {
+                Text(
+                    text = "Admin",
+                    modifier = Modifier.padding(top = 10.dp, start = 70.dp),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Active Now",
+                    color = Color.Green,
+                    modifier = Modifier.padding(start = 70.dp),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .background(
+                    color = Color(0xFFBFC6FF),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable {}
+        ) {
+            Image(
+                painter = painterResource(R.drawable.bell),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(30.dp)
+            )
+            Text(
+                text = "New Request",
+                modifier = Modifier.padding(10.dp),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .background(
+                    color = Color(0xFFBFC6FF),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable {}
+        ) {
+            Text(
+                text = "New Request",
+                modifier = Modifier.padding(10.dp),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Image(
+                painter = painterResource(R.drawable.bell),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(100.dp)
+                    .alpha(0.3f)
+                    .align(Alignment.TopEnd)
+
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .background(
+                    color = Color(0xFFe0e0e0),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable {}
+        ) {
+            Text(
+                text = "Claimed",
+                modifier = Modifier.padding(10.dp),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Image(
+                painter = painterResource(R.drawable.take),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(120.dp)
+                    .alpha(0.3f)
+                    .align(Alignment.TopEnd)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .background(
+                    color = Color(0xFFfacdcd),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable {}
+        ) {
+            Text(
+                text = "Rejected Claims",
+                modifier = Modifier.padding(10.dp),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Image(
+                painter = painterResource(R.drawable.stop),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(120.dp)
+                    .alpha(0.3f)
+                    .align(Alignment.TopEnd)
+            )
+        }
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreAdminHome() {
     ItsHereTheme {
         AdminHome(onLogout = {}, onOpenDrawer = {})
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun PreSidebar() {
+    ItsHereTheme {
+        SideBar()
     }
 }

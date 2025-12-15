@@ -1,26 +1,35 @@
 package com.example.itshere
 
-import android.R.attr.divider
+
 import android.app.Application
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,10 +66,6 @@ fun AppNavigation() {
 
     val loginViewModel: LoginViewModel = viewModel(factory = loginViewModelFactory)
 
-
-    val isUserLoggedIn by remember {
-        mutableStateOf(auth.currentUser != null)
-    }
 
     NavHost(
         navController = navController,
@@ -204,40 +209,120 @@ fun AppNavigation() {
 @Composable
 fun AdminDrawerContent(
     onLogout: () -> Unit,
-    onNavigateToDashboard: () -> Unit = {},
+    onCloseDrawer: () -> Unit,
     onNavigateToUserList: () -> Unit = {},
     onNavigateToReports: () -> Unit = {}
     // Add other navigation functions here later
 ) {
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp) // Set a width to match the image
-    ) {
-        Text("Admin Sidebar Menu", modifier = Modifier.padding(16.dp))
-        Text("Admin1231", modifier = Modifier.padding(horizontal = 16.dp))
-        Text("Active now •", modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp), color = Color.Green)
-        Divider()
+        modifier = Modifier
+            .padding(bottom = 100.dp)
+            .width(300.dp),// Set a width to match the image
+        drawerContainerColor = Color(0xFFfacdcd)
 
+    ) {
+        Image(
+            painter = painterResource(R.drawable.back_arrow),
+            contentDescription = null,
+            modifier = Modifier
+                .size(70.dp)
+                .padding(top = 40.dp )
+                .clickable{onCloseDrawer()}
+        )
+        Row(
+            modifier = Modifier.padding(top = 30.dp)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.people),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(50.dp)
+                    .padding(start = 16.dp)
+            )
+            Column {
+                Text("Admin1231",
+                    modifier = Modifier.padding(start = 16.dp),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Active now",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 16.dp, top = 2.dp),
+                    color = Color.Green
+                )
+            }
+        }
         NavigationDrawerItem(
-            label = { Text("Dashboard") },
+            label = {
+                Text(
+                    "Dashboard",
+                    fontWeight = FontWeight.Bold
+                ) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.dashboard), // <-- R.drawable reference
+                    contentDescription = "Dashboard Icon",
+                    modifier = Modifier.size(24.dp) // Set a size, as drawables don't have a default size
+                )
+            },
+            colors = NavigationDrawerItemDefaults.colors(
+                Color(0xFF9c8181),
+                unselectedContainerColor = Color.Transparent
+            ),
             selected = false,
-            onClick = onNavigateToDashboard
+            onClick = onCloseDrawer
         )
         NavigationDrawerItem(
-            label = { Text("User list") },
+            label = {
+                Text(
+                    "User List",
+                    fontWeight = FontWeight.Bold
+                ) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.group), // <-- R.drawable reference
+                    contentDescription = "Dashboard Icon",
+                    modifier = Modifier.size(24.dp) // Set a size, as drawables don't have a default size
+                )
+            },
+            colors = NavigationDrawerItemDefaults.colors(
+                Color(0xFF9c8181),
+                unselectedContainerColor = Color.Transparent
+            ),
             selected = false,
             onClick = onNavigateToUserList
         )
         NavigationDrawerItem(
-            label = { Text("Reports") },
+            label = {
+                Text(
+                    "Report",
+                    fontWeight = FontWeight.Bold
+                ) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.file), // <-- R.drawable reference
+                    contentDescription = "Dashboard Icon",
+                    modifier = Modifier.size(24.dp) // Set a size, as drawables don't have a default size
+                )
+            },
+            colors = NavigationDrawerItemDefaults.colors(
+                Color(0xFF9c8181),
+                unselectedContainerColor = Color.Transparent
+            ),
             selected = false,
             onClick = onNavigateToReports
         )
 
-        Divider()
-        NavigationDrawerItem(
-            label = { Text("Logout") },
-            selected = false,
-            onClick = onLogout
+        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+        Text(
+            "Log out",
+            fontWeight = FontWeight.Bold,
+            color = Color.Red,
+            modifier = Modifier
+                .padding(top = 16.dp, start = 15.dp)
+                .clickable { onLogout() }
         )
         // Add Dashboard, User list, Reports items here
     }
@@ -255,6 +340,12 @@ fun AdminHomeScreenWrapper(
         drawerState = drawerState,
         drawerContent = {
             AdminDrawerContent(
+
+                onCloseDrawer = {
+                    scope.launch {
+                        drawerState.close()
+                    }
+                },
                 onLogout = {
                     scope.launch { drawerState.close() } // Close drawer on click
                     onLogout() // Execute logout action
@@ -275,8 +366,14 @@ fun AdminHomeScreenWrapper(
     )
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
 @Composable
 fun PreviewDrawer(){
-    AdminDrawerContent(onLogout = {}, onNavigateToReports = {})
+    AdminDrawerContent(
+        onLogout = {},
+        onCloseDrawer = {}
+    )
 }
