@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.itshere.Data.Dao.AdminDao
 import com.example.itshere.Data.Dao.LocalImageDao
 import com.example.itshere.Data.Dao.UserDao
+import com.example.itshere.Data.Entity.Admin
 import com.example.itshere.Data.Entity.LocalImage
 import com.example.itshere.Data.Entity.User
 import kotlinx.coroutines.InternalCoroutinesApi
@@ -15,15 +16,17 @@ import kotlinx.coroutines.internal.synchronized
 @Database(
     entities = [
         User::class,
-        LocalImage::class
+        LocalImage::class,
+        Admin::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun localImageDao(): LocalImageDao
     abstract fun adminDao(): AdminDao
+
 
     companion object {
         @Volatile

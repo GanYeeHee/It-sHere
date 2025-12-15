@@ -8,15 +8,15 @@ import com.example.itshere.Data.Entity.Admin
 
 @Dao
 interface AdminDao {
-    // Inserts the admin credentials. If an entry with adminId=1 already exists, it replaces it.
+    // Inserts or replaces the single admin entry (using OnConflictStrategy.REPLACE ensures only one entry exists)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAdmin(admin: Admin)
 
-    // Retrieves the single admin entry (which will always have ID 1)
-    @Query("SELECT * FROM Admin WHERE adminId = 1")
+    // Retrieves the single admin entry
+    @Query("SELECT * FROM admin WHERE adminId = 1")
     suspend fun getAdminCredentials(): Admin?
 
-    // Optional: for verification during setup
-    @Query("SELECT COUNT(*) FROM Admin")
+    // Optional utility to check if the table is empty
+    @Query("SELECT COUNT(*) FROM admin")
     suspend fun getAdminCount(): Int
 }

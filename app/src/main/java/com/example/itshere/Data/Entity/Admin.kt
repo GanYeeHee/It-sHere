@@ -3,11 +3,15 @@ package com.example.itshere.Data.Entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "Admin")
+@Entity(tableName = "admin")
 data class Admin(
-    // We only ever expect one admin entry, so we use a constant primary key.
+    // 1. Admin ID: Used as the unique key. We set a default of 1.
     @PrimaryKey
-    val adminId: Int = 1,
+    val adminId: String,
+
+    // 2. Admin Email
     val email: String,
-    val passwordHash: String
+
+    // 3. Password (stored locally as a string)
+    val password: String
 )
