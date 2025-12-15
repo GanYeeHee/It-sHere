@@ -1,9 +1,9 @@
-package com.example.itshere.Data
+package com.example.itshere.Data.Entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "users")
+@Entity(tableName = "Users")
 data class User(
     @PrimaryKey
     val uid: String = "",

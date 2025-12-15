@@ -1,4 +1,4 @@
-package com.example.itshere.Dao
+package com.example.itshere.Data.Entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

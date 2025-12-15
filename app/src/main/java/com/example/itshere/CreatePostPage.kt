@@ -1,6 +1,5 @@
 package com.example.itshere
 
-import android.content.Context
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -41,12 +40,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.ImageItem
 import com.example.itshere.Data.PostType
 import com.example.itshere.Data.QuestionAnswer
-import com.example.itshere.ViewModel.PostViewModel
+import com.example.itshere.viewModel.PostViewModel
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
@@ -558,8 +556,8 @@ fun WrapContentRow(
         var currentRowWidth = 0
         var currentRowHeight = 0
         var totalHeight = 0
-        var xPositions = mutableListOf<Int>()
-        var yPositions = mutableListOf<Int>()
+        val xPositions = mutableListOf<Int>()
+        val yPositions = mutableListOf<Int>()
 
         val placeables = measurables.map { measurable ->
             measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
@@ -945,12 +943,5 @@ fun CompactQuestionAnswerField(
 @Preview(showBackground = true)
 @Composable
 fun CreatePostPagePreview() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
-        ) {
-            CreatePostPage()
-        }
-    }
+    CreatePostPage(onPostSuccess = {}, onBackClick = {})
 }

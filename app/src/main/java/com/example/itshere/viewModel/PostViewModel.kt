@@ -1,4 +1,4 @@
-package com.example.itshere.ViewModel
+package com.example.itshere.viewModel
 
 import android.content.Context
 import android.net.Uri
@@ -6,8 +6,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.*
-import com.example.itshere.Dao.AppDatabase
-import com.example.itshere.Dao.LocalImage
+import com.example.itshere.Data.AppDatabase
+import com.example.itshere.Data.Entity.LocalImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query

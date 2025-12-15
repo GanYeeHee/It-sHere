@@ -1,8 +1,8 @@
-package com.example.itshere.ViewModel
+package com.example.itshere.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Data.User
+import com.example.itshere.Data.Entity.User
 import com.example.itshere.Repository.UserRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

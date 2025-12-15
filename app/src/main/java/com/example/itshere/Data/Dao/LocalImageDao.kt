@@ -1,6 +1,10 @@
-package com.example.itshere.Dao
+package com.example.itshere.Data.Dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import com.example.itshere.Data.Entity.LocalImage
 import kotlinx.coroutines.flow.Flow
 
 @Dao
