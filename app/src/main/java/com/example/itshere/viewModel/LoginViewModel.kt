@@ -6,7 +6,6 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.itshere.Data.Entity.Admin
+import com.example.itshere.Repository.UserRepository
 
 // --- CONSTANTS FOR INITIAL SEEDING & CHECKING ---
 private const val INITIAL_ADMIN_EMAIL = "admin25@itshere.com"
@@ -151,49 +151,25 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         _state.value = _state.value.copy(isLoading = false)
 
                         if (task.isSuccessful) {
-                            val user = auth.currentUser
-                            if (user?.isEmailVerified == true) {
+                            val firebaseUser = auth.currentUser
 
-                                // Existing Firebase User Data Logic
-                                val userId = user.uid
-                                val userEmail = user.email ?: currentState.email
-                                val userName = user.displayName ?: "User"
-                                val phoneNumber = user.phoneNumber
-                                val isEmailVerified = user.isEmailVerified
-                                val photoUrl = user.photoUrl?.toString()
+                            if (firebaseUser?.isEmailVerified == true) {
+                                _state.value = currentState.copy(isLoading = false)
 
-                                // Synchronize to local database
-                                viewModelScope.launch(Dispatchers.IO) {
-                                    val database = AppDatabase.getInstance(context)
-                                    val userRepository = UserRepository(database)
-                                    val userData = com.example.itshere.Data.Entity.User(
-                                        uid = userId,
-                                        email = userEmail,
-                                        displayName = userName,
-                                        phoneNumber = phoneNumber,
-                                        photoUrl = photoUrl,
-                                        isEmailVerified = isEmailVerified,
-                                        createdAt = user.metadata?.creationTimestamp ?: System.currentTimeMillis(),
-                                        lastSignInTime = System.currentTimeMillis(),
-                                        providerId = user.providerId
-                                    )
-                                    database.userDao().insertUser(userData)
-                                    userRepository.syncUserToFirestore(userData)
-                                    println("✅ User saved and synced.")
-                                }
-
-                                // FIXED: Launching onSuccess on the Main Dispatcher safely
+                                // ✅ Just navigate, NO database write
                                 viewModelScope.launch(Dispatchers.Main) {
                                     onSuccess()
                                 }
+
                             } else {
-                                println("❌ Email not verified for user: ${user?.email}")
                                 auth.signOut()
+                                _state.value = currentState.copy(isLoading = false)
                                 onEmailNotVerified()
                             }
+
                         } else {
+                            _state.value = currentState.copy(isLoading = false)
                             val errorMsg = task.exception?.message ?: "Login failed"
-                            println("❌ Login failed: $errorMsg")
                             onError(errorMsg)
                         }
                     }

@@ -1,20 +1,22 @@
 package com.example.itshere.Data.Entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "Users")
 data class User(
     @PrimaryKey
-    val uid: String = "",
-    val email: String = "",
-    val displayName: String? = null,
-    val phoneNumber: String? = null,
-    val photoUrl: String? = null,
-    val isEmailVerified: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis(),
-    val lastSignInTime: Long = System.currentTimeMillis(),
-    val providerId: String = "firebase",
-    val isAnonymous: Boolean = false,
-    val isNewUser: Boolean = true
+    @ColumnInfo(name = "firebase_uid")
+    val firebaseUid: String,
+    @ColumnInfo(name = "user_id")
+    val userId: String,
+
+    val name: String,
+
+    val phone: String,
+
+    val email: String,
+
+    val password: String
 )

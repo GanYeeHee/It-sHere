@@ -1,6 +1,7 @@
 package com.example.itshere.Data.Dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -10,27 +11,22 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
-    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
-    suspend fun insertUser(user: User)
 
-    @Update
-    suspend fun updateUser(user: User)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(user: User)
 
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    suspend fun getUserById(uid: String): User?
+    @Query("SELECT user_id FROM users ORDER BY user_id DESC LIMIT 1")
+    suspend fun getLastUserCode(): String?
 
-    @Query("SELECT * FROM users WHERE email = :email")
-    suspend fun getUserByEmail(email: String): User?
+    @Query("SELECT * FROM users WHERE user_id = :userId")
+    suspend fun getById(userId: String): User?
 
     @Query("SELECT * FROM users")
-    suspend fun getAllUsers(): List<User>
+    suspend fun getAll(): List<User>
 
-    @Query("SELECT * FROM users")
-    fun getAllUsersFlow(): Flow<List<User>>
-
-    @Query("DELETE FROM users WHERE uid = :uid")
-    suspend fun deleteUser(uid: String)
+    @Delete
+    suspend fun delete(user: User)
 
     @Query("DELETE FROM users")
-    suspend fun deleteAllUsers()
+    suspend fun clear()
 }

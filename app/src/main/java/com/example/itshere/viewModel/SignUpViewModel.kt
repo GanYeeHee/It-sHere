@@ -1,6 +1,7 @@
 package com.example.itshere.viewModel
 
 import android.content.Context
+import android.util.Log.e
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.Entity.User
@@ -68,6 +69,13 @@ class SignUpViewModel : ViewModel() {
             confirmPasswordError = null
         )
     }
+    private fun generateNextUserCode(lastCode: String?): String {
+        return if (lastCode == null) "U0001"
+        else {
+            val number = lastCode.substring(1).toInt()
+            "U" + String.format("%04d", number + 1)
+        }
+    }
 
     fun signUp(
         context: Context,
@@ -120,83 +128,49 @@ class SignUpViewModel : ViewModel() {
         _state.value = currentState.copy(isLoading = true)
 
         viewModelScope.launch {
-            try {
+
                 auth.createUserWithEmailAndPassword(currentState.email, currentState.password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            val user = auth.currentUser
-                            val userId = user?.uid ?: ""
+                            val firebaseUser = auth.currentUser
+                            val firebaseUid = firebaseUser?.uid ?: ""
 
-                            // Update profile with name
-                            val profileUpdates = UserProfileChangeRequest.Builder()
-                                .setDisplayName(currentState.name)
-                                .build()
-
-                            user?.updateProfile(profileUpdates)?.addOnCompleteListener { updateTask ->
-                                if (updateTask.isSuccessful) {
-                                    val userData = User(
-                                        uid = userId,
-                                        email = currentState.email,
-                                        displayName = currentState.name,
-                                        phoneNumber = currentState.phone,
-                                        isEmailVerified = false,
-                                        createdAt = System.currentTimeMillis(),
-                                        lastSignInTime = System.currentTimeMillis(),
-                                        providerId = "password"
-                                    )
-
-                                    viewModelScope.launch(Dispatchers.IO) {
-                                        try {
-                                            val database = AppDatabase.getInstance(context)
-                                            val userRepository = UserRepository(database)
-
-                                            database.userDao().insertUser(userData)
-
-                                            userRepository.syncUserToFirestore(userData)
-
-                                            println("✅ User saved to local database and Firestore:")
-                                            println("   UID: $userId")
-                                            println("   Email: ${currentState.email}")
-                                            println("   Name: ${currentState.name}")
-                                        } catch (e: Exception) {
-                                            println("❌ Error saving user: ${e.message}")
-                                            e.printStackTrace()
-                                        }
-                                    }
-
-                                    // Send verification email
-                                    user.sendEmailVerification()
-                                        .addOnCompleteListener { emailTask ->
-                                            _state.value = _state.value.copy(isLoading = false)
-                                            if (emailTask.isSuccessful) {
-                                                println("✅ Verification email sent to ${currentState.email}")
-                                                onSuccess()
-                                            } else {
-                                                val errorMsg = "Account created but failed to send verification email"
-                                                println("❌ $errorMsg")
-                                                onError(errorMsg)
-                                            }
-                                        }
-                                } else {
-                                    _state.value = _state.value.copy(isLoading = false)
-                                    val errorMsg = "Failed to update profile: ${updateTask.exception?.message}"
-                                    println("❌ $errorMsg")
-                                    onError(errorMsg)
-                                }
+                            if (firebaseUser == null) {
+                                _state.value = _state.value.copy(isLoading = false)
+                                onError("User creation failed")
+                                return@addOnCompleteListener
                             }
-                        } else {
+
+
+                            viewModelScope.launch(Dispatchers.IO) {
+                                val userDao = AppDatabase.getInstance(context).userDao()
+
+                                val lastCode = userDao.getLastUserCode()   // you need to add this DAO method
+                                val newUserCode = generateNextUserCode(lastCode)
+
+                                val userEntity = User(
+                                    firebaseUid = firebaseUid,
+                                    userId = newUserCode,
+                                    name = currentState.name,
+                                    phone = currentState.phone,
+                                    email = currentState.email,
+                                    password = currentState.password
+                                )
+
+                                userDao.insert(userEntity)
+                            }
+
+                            // Optional: email verification
+                            firebaseUser.sendEmailVerification()
+
+                            _state.value = _state.value.copy(isLoading = false)
+                            onSuccess()
+                        }else {
                             _state.value = _state.value.copy(isLoading = false)
                             val errorMsg = task.exception?.message ?: "Sign up failed"
-                            println("❌ Sign up failed: $errorMsg")
                             onError(errorMsg)
                         }
                     }
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false)
-                val errorMsg = e.message ?: "Sign up failed"
-                println("❌ Sign up exception: $errorMsg")
-                onError(errorMsg)
-            }
         }
     }
 }
