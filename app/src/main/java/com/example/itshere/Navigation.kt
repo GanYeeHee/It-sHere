@@ -228,6 +228,11 @@ fun AppNavigation() {
         composable("notification"){
             NotificationsScreen()
         }
+        composable("report") {
+            ReportPage(
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -379,6 +384,10 @@ fun AdminHomeScreenWrapper(
                 onNavigateToUserList = {
                     scope.launch { drawerState.close() }
                     navController.navigate("users")
+                },
+                onNavigateToReports = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("report") // <-- NEW route
                 }
 
             )
