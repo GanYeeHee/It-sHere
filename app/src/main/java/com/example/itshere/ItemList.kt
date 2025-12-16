@@ -40,7 +40,7 @@ fun ItemListScreen(navController: NavController, modifier: Modifier = Modifier){
             contentDescription = "back",
             modifier = Modifier
                 .size(90.dp)
-                .padding(top = 55.dp )
+                .padding(top = 60.dp )
                 .clickable{navController.navigateUp()}
         )
         Text(
@@ -49,7 +49,7 @@ fun ItemListScreen(navController: NavController, modifier: Modifier = Modifier){
             fontWeight = FontWeight.Bold ,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 60.dp)
+                .padding(top = 65.dp)
         )
     }
 }

@@ -16,12 +16,12 @@ import com.example.itshere.Data.Entity.Admin
 import com.example.itshere.Repository.UserRepository
 
 // --- CONSTANTS FOR INITIAL SEEDING & CHECKING ---
-private const val INITIAL_ADMIN_EMAIL = "admin25@itshere.com"
-private const val INITIAL_ADMIN_PASSWORD = "itsMin!pro25" // The actual password for login check
+private const val INITIAL_ADMIN_EMAIL = "admin12"
+private const val INITIAL_ADMIN_PASSWORD = "admin12" // The actual password for login check
 private const val INITIAL_ADMIN_ID = "ADMIN25" // The unique ID stored in the database
 
 // Masked value for display in App Inspection:
-private const val INITIAL_ADMIN_PASSWORD_MASKED = "its*******"
+private const val INITIAL_ADMIN_PASSWORD_MASKED = "*****12"
 // ------------------------------------------------
 
 

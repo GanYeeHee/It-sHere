@@ -27,7 +27,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun localImageDao(): LocalImageDao
     abstract fun adminDao(): AdminDao
 
-
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null

@@ -1,5 +1,8 @@
 package com.example.itshere.viewModel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.Data.Entity.User
@@ -24,6 +27,20 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
             _state.value = UserState(users)
+        }
+    }
+}
+
+class UserListViewModel(
+    private val repository: UserRepository
+) : ViewModel() {
+
+    var users by mutableStateOf<List<User>>(emptyList())
+        private set
+
+    init {
+        viewModelScope.launch {
+            users = repository.getAllUsers()
         }
     }
 }
