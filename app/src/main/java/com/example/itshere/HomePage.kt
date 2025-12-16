@@ -34,6 +34,7 @@ import com.example.itshere.Data.PostData
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
 
@@ -70,7 +71,9 @@ private fun HomePageContent(
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
 
-    var showMenu by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
     var showLogoutDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -87,310 +90,313 @@ private fun HomePageContent(
         listOf("All", "Electronic", "Clothes", "Cards", "Accessories", "Documents", "Others")
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Hi,",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = currentUser?.displayName ?: "User",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
+        drawerContent = {
+            // 3. Use the new DrawerContent function here
+            DrawerContent(
+                userDisplayName = currentUser?.displayName ?: "User",
+                userPhone = currentUser?.phoneNumber ?: "+6012-3456789",
+                onSavedClick = { scope.launch { drawerState.close() } },
+                onNotificationClick = {
+                    navController.navigate("notifications")
+                    scope.launch { drawerState.close() }
                 },
-                actions = {
-                    IconButton(
-                        onClick = { showMenu = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.Black
-                        )
-                    }
+                onAboutUsClick = {
+                    navController.navigate("about_us")
+                    scope.launch { drawerState.close() }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+                onSettingClick = {
+                    navController.navigate("settings")
+                    scope.launch { drawerState.close() }
+                },
+                onLogoutClick = {
+                    scope.launch { drawerState.close() } // Close drawer first
+                    showLogoutDialog = true
+                }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreatePostClick,
-                containerColor = Color(0xFF7C4DFF),
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create Post"
-                )
-            }
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Search Bar Section
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .weight(1f) // Take all space except trailing icon
-                        .height(52.dp),
-                    placeholder = { Text("Search posts") },
-                    singleLine = true,
-                    maxLines = 1,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF7C4DFF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedLabelColor = Color(0xFF7C4DFF)
-                    ),
-                    trailingIcon = {
-                        IconButton(onClick = { showDateFilterDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Date filter",
-                                tint = Color.Gray
-                            )
-                        }
-                    }
-                )
-            }
-
-            // Category Chips - Horizontal Scrollable Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = {
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
                             Text(
-                                text = category,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF7C4DFF),
-                            selectedLabelColor = Color.White,
-                            containerColor = Color(0xFFF5F5F5),
-                            labelColor = Color.Gray
-                        )
-                    )
-                }
-            }
-
-            // Date Filter Dialog
-            if (showDateFilterDialog) {
-                DateFilterDialog(
-                    showDialog = true,
-                    selectedOption = selectedDateOption,
-                    onOptionChange = { selectedDateOption = it },
-                    startDate = customStartDate,
-                    endDate = customEndDate,
-                    onStartDateChange = { customStartDate = it },
-                    onEndDateChange = { customEndDate = it },
-                    onConfirm = {
-                        // TODO: Apply filter logic
-                        showDateFilterDialog = false
-                    },
-                    onDismiss = { showDateFilterDialog = false }
-                )
-            }
-
-            // Filter posts based on search query, category, and date
-            val filteredPosts = remember(state.posts, searchQuery, selectedCategory, selectedDateOption, customStartDate, customEndDate) {
-                val lowercaseQuery = searchQuery.lowercase()
-
-                val searchedPosts = if (lowercaseQuery.isEmpty()) {
-                    state.posts
-                } else {
-                    state.posts.filter { post ->
-                        post.title.lowercase().contains(lowercaseQuery) ||
-                                post.description?.lowercase()?.contains(lowercaseQuery) == true ||
-                                post.category.lowercase().contains(lowercaseQuery) ||
-                                post.postType.lowercase().contains(lowercaseQuery)
-                    }
-                }
-
-                val categoryFiltered = if (selectedCategory == "All") {
-                    searchedPosts
-                } else {
-                    searchedPosts.filter { post ->
-                        post.category.contains(selectedCategory, ignoreCase = true)
-                    }
-                }
-
-                // Filter by date if Custom selected
-                if (selectedDateOption == "Custom" && customStartDate.isNotEmpty() && customEndDate.isNotEmpty()) {
-                    categoryFiltered.filter { post ->
-                        val postDate = post.timestampToDateString()
-                        postDate >= customStartDate && postDate <= customEndDate
-                    }
-                } else {
-                    categoryFiltered
-                }
-            }
-
-            // Posts Grid
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            ) {
-                when {
-                    state.isLoading && state.posts.isEmpty() -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center),
-                            color = Color(0xFF7C4DFF)
-                        )
-                    }
-                    state.error != null -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "Error: ${state.error}",
-                                color = Color.Red,
+                                text = "Hi,",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { viewModel.loadPosts() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF7C4DFF)
-                                )
-                            ) {
-                                Text("Retry")
-                            }
+                            Text(
+                                text = currentUser?.displayName ?: "User",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    }
-                    filteredPosts.isEmpty() -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                    },
+                    actions = {
+                        IconButton(
+                            // 4. Open the drawer instead of setting showMenu = true
+                            onClick = { scope.launch { drawerState.open() } }
                         ) {
-                            if (searchQuery.isNotEmpty() || selectedCategory != "All") {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menu",
+                                tint = Color.Black
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White
+                    )
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onCreatePostClick,
+                    containerColor = Color(0xFF7C4DFF),
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Create Post"
+                    )
+                }
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Search Bar Section
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .weight(1f) // Take all space except trailing icon
+                            .height(52.dp),
+                        placeholder = { Text("Search posts") },
+                        singleLine = true,
+                        maxLines = 1,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF7C4DFF),
+                            unfocusedBorderColor = Color.Gray,
+                            focusedLabelColor = Color(0xFF7C4DFF)
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { showDateFilterDialog = true }) {
                                 Icon(
-                                    imageVector = Icons.Default.SearchOff,
-                                    contentDescription = "No results",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "No matching posts",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.Gray
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Try changing your search or filter",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            } else {
-                                Text(
-                                    text = "No posts yet",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.Gray
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Be the first to create a post!",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "Date filter",
+                                    tint = Color.Gray
                                 )
                             }
                         }
-                    }
-                    else -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(filteredPosts) { post ->
-                                PostCardGrid(
-                                    post = post,
-                                    onFavoriteClick = { viewModel.toggleFavorite(post.id) },
-                                    onClick = { onPostClick(post.id) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (showMenu) {
-                    SideMenu(
-                        userDisplayName = currentUser?.displayName ?: "Name",
-                        userPhone = currentUser?.phoneNumber ?: "+6012-3456789",
-                        onSavedClick = { showMenu = false },
-                        onNotificationClick = {
-                            navController.navigate("notifications")
-                            showMenu = false
-                        },
-                        onAboutUsClick = {
-                            navController.navigate("about_us")
-                            showMenu = false
-                        },
-                        onSettingClick = {
-                            navController.navigate("settings")
-                            showMenu = false
-                        },
-                        onLogoutClick = {
-                            showMenu = false
-                            showLogoutDialog = true
-                        },
-                        onDismiss = { showMenu = false }
                     )
                 }
 
-                if (showLogoutDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLogoutDialog = false },
-                        title = { Text("Logout", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-                        text = { Text("Are you sure you want to logout?") },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    showLogoutDialog = false
-                                    logoutUser(onLogoutSuccess)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = {
+                                Text(
+                                    text = category,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF7C4DFF),
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFF5F5F5),
+                                labelColor = Color.Gray
+                            )
+                        )
+                    }
+                }
+
+                if (showDateFilterDialog) {
+                    DateFilterDialog(
+                        showDialog = true,
+                        selectedOption = selectedDateOption,
+                        onOptionChange = { selectedDateOption = it },
+                        startDate = customStartDate,
+                        endDate = customEndDate,
+                        onStartDateChange = { customStartDate = it },
+                        onEndDateChange = { customEndDate = it },
+                        onConfirm = {
+                            // TODO: Apply filter logic
+                            showDateFilterDialog = false
+                        },
+                        onDismiss = { showDateFilterDialog = false }
+                    )
+                }
+
+                // Filter posts based on search query, category, and date
+                val filteredPosts = remember(state.posts, searchQuery, selectedCategory, selectedDateOption, customStartDate, customEndDate) {
+                    val lowercaseQuery = searchQuery.lowercase()
+
+                    val searchedPosts = if (lowercaseQuery.isEmpty()) {
+                        state.posts
+                    } else {
+                        state.posts.filter { post ->
+                            post.title.lowercase().contains(lowercaseQuery) ||
+                                    post.description?.lowercase()?.contains(lowercaseQuery) == true ||
+                                    post.category.lowercase().contains(lowercaseQuery) ||
+                                    post.postType.lowercase().contains(lowercaseQuery)
+                        }
+                    }
+
+                    val categoryFiltered = if (selectedCategory == "All") {
+                        searchedPosts
+                    } else {
+                        searchedPosts.filter { post ->
+                            post.category.contains(selectedCategory, ignoreCase = true)
+                        }
+                    }
+
+                    // Filter by date if Custom selected
+                    if (selectedDateOption == "Custom" && customStartDate.isNotEmpty() && customEndDate.isNotEmpty()) {
+                        categoryFiltered.filter { post ->
+                            val postDate = post.timestampToDateString()
+                            postDate >= customStartDate && postDate <= customEndDate
+                        }
+                    } else {
+                        categoryFiltered
+                    }
+                }
+
+                // Posts Grid
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    when {
+                        state.isLoading && state.posts.isEmpty() -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color(0xFF7C4DFF)
+                            )
+                        }
+                        state.error != null -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Error: ${state.error}",
+                                    color = Color.Red,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { viewModel.loadPosts() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF7C4DFF)
+                                    )
+                                ) {
+                                    Text("Retry")
                                 }
-                            ) { Text("Yes") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showLogoutDialog = false }) { Text("No") }
+                            }
                         }
-                    )
+                        filteredPosts.isEmpty() -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                if (searchQuery.isNotEmpty() || selectedCategory != "All") {
+                                    Icon(
+                                        imageVector = Icons.Default.SearchOff,
+                                        contentDescription = "No results",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "No matching posts",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Try changing your search or filter",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.Gray
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No posts yet",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Be the first to create a post!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                        else -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(filteredPosts) { post ->
+                                    PostCardGrid(
+                                        post = post,
+                                        onFavoriteClick = { viewModel.toggleFavorite(post.id) },
+                                        onClick = { onPostClick(post.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                // 6. KEEP the Logout Dialog rendering logic
+                    if (showLogoutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showLogoutDialog = false },
+                            title = { Text("Logout", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+                            text = { Text("Are you sure you want to logout?") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showLogoutDialog = false
+                                        logoutUser(onLogoutSuccess)
+                                    }
+                                ) { Text("Yes") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showLogoutDialog = false }) { Text("No") }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -404,7 +410,7 @@ private fun logoutUser(onLogoutSuccess: () -> Unit) {
 }
 
 @Composable
-fun SideMenu(
+fun DrawerContent(
     userDisplayName: String,
     userPhone: String,
     onSavedClick: () -> Unit,
@@ -412,129 +418,105 @@ fun SideMenu(
     onAboutUsClick: () -> Unit,
     onSettingClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onDismiss: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { onDismiss() }
+    ModalDrawerSheet(
+        modifier = Modifier.width(300.dp) // Set width instead of fillMax
     ) {
-        Surface(
+        // Drawer Header (User Info)
+        Column(
             modifier = Modifier
-                .fillMaxHeight()
-                .width(280.dp)
-                .align(Alignment.CenterEnd)
-                .clickable { },
-            color = Color.White,
-            shape = RoundedCornerShape(bottomStart = 20.dp)
+                .fillMaxWidth()
+                .background(Color(0xFFE0E0E0)) // Light gray background for header
+                .padding(24.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(24.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close menu",
-                            tint = Color.Black,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+            // Placeholder for User Avatar/Icon (Optional)
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "User Avatar",
+                tint = Color(0xFF7C4DFF),
+                modifier = Modifier.size(48.dp)
+            )
 
-                Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Username",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+            Text(
+                text = userDisplayName,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
 
-                Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-                Column {
-                    Text(
-                        text = userDisplayName,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
-                    )
+            Text(
+                text = userPhone,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+        // Navigation Items
+        Column(
+            modifier = Modifier
+                .weight(1f) // Take up remaining space
+                .padding(vertical = 8.dp)
+        ) {
+            NavigationDrawerItem(
+                label = { Text("Saved") },
+                icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                selected = false, // Add logic if you want to highlight the current screen
+                onClick = onSavedClick,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
 
-                    Text(
-                        text = userPhone,
-                        fontSize = 16.sp,
-                        color = Color(0xFF666666)
-                    )
-                }
+            NavigationDrawerItem(
+                label = { Text("Notification") },
+                icon = { Icon(Icons.Default.Notifications, contentDescription = "Notification") },
+                selected = false,
+                onClick = onNotificationClick,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
 
-                Spacer(modifier = Modifier.height(40.dp))
+            NavigationDrawerItem(
+                label = { Text("About Us") },
+                icon = { Icon(Icons.Default.Info, contentDescription = "About Us") },
+                selected = false,
+                onClick = onAboutUsClick,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
 
-                MenuItem(
-                    icon = Icons.Default.Favorite,
-                    text = "Saved",
-                    onClick = onSavedClick
-                )
+            NavigationDrawerItem(
+                label = { Text("Settings") },
+                icon = { Icon(Icons.Default.Settings, contentDescription = "Setting") },
+                selected = false,
+                onClick = onSettingClick,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+        }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                MenuItem(
-                    icon = Icons.Default.Notifications,
-                    text = "Notification",
-                    onClick = onNotificationClick
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                MenuItem(
-                    icon = Icons.Default.Info,
-                    text = "About Us",
-                    onClick = onAboutUsClick
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                MenuItem(
-                    icon = Icons.Default.Settings,
-                    text = "Setting",
-                    onClick = onSettingClick
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Button(
-                    onClick = onLogoutClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFFCDD2)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Logout",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
-                    )
-                }
-            }
+        // Logout Button at the bottom
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Divider(color = Color.LightGray.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(8.dp))
+            NavigationDrawerItem(
+                label = { Text("Logout", fontWeight = FontWeight.SemiBold) },
+                icon = { Icon(Icons.Default.ExitToApp, contentDescription = "Logout") },
+                selected = false,
+                onClick = onLogoutClick,
+                colors = NavigationDrawerItemDefaults.colors(
+                    unselectedContainerColor = Color.Transparent,
+                    unselectedTextColor = Color.Red,
+                    unselectedIconColor = Color.Red
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
-
 @Composable
 fun MenuItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -842,10 +824,15 @@ fun PostData.timestampToDateString(): String {
 
 @Preview(showBackground = true)
 @Composable
-fun PreSideMenu() {
-    SideMenu(onDismiss = {}, onLogoutClick = {},
+fun PreDrawerContent() {
+    // You'll need to update the preview to show the new DrawerContent function
+    DrawerContent(
+        onLogoutClick = {},
         onSavedClick = {},
         onNotificationClick = {},
         onAboutUsClick = {},
-        onSettingClick = {}, userPhone = "", userDisplayName = "")
+        onSettingClick = {},
+        userPhone = "+6012-3456789",
+        userDisplayName = "Preview User"
+    )
 }

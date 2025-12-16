@@ -15,9 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun NotificationsScreen(modifier: Modifier = Modifier){
+fun ClaimedScreen(navController: NavController, modifier: Modifier = Modifier){
     Box(
         modifier.fillMaxSize()
     ){
@@ -27,10 +29,10 @@ fun NotificationsScreen(modifier: Modifier = Modifier){
             modifier = Modifier
                 .size(90.dp)
                 .padding(top = 55.dp )
-                .clickable{}
+                .clickable{navController.navigateUp()}
         )
         Text(
-            text = "Notifications",
+            text = "Claimed",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold ,
             modifier = Modifier
@@ -45,6 +47,6 @@ fun NotificationsScreen(modifier: Modifier = Modifier){
     showSystemUi = true
 )
 @Composable
-fun PreNotificationsScreen(){
-    NotificationsScreen()
+fun PreClaimedScreen(){
+    ClaimedScreen(navController = rememberNavController())
 }
