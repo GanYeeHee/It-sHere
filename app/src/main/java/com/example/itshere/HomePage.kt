@@ -310,15 +310,6 @@ fun SideMenu(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Text(
-                    text = "Username",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(40.dp))
-
                 Column {
                     Text(
                         text = userDisplayName,
