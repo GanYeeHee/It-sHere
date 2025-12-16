@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,6 +25,16 @@ fun ClaimedScreen(navController: NavController, modifier: Modifier = Modifier){
     Box(
         modifier.fillMaxSize()
     ){
+        Image(
+            painter = painterResource(R.drawable.take), // <-- REPLACE with your actual background resource ID
+            contentDescription = null, // Background images don't need a description for accessibility
+            modifier = Modifier
+                .size(250.dp)
+                .align(Alignment.Center)
+                .alpha(0.1f),
+            contentScale = ContentScale.Crop // Crucial: Scales the image to fill the bounds without distortion
+        )
+
         Image(
             painter = painterResource(R.drawable.back_arrow),
             contentDescription = "back",
