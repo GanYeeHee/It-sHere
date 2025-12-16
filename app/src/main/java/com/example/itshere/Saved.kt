@@ -1,6 +1,7 @@
 // SavedScreen.kt
 package com.example.itshere
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Image
@@ -16,7 +18,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,8 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,25 +166,95 @@ fun SavedPostCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 左側：圖片或圖標
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .background(
-                        if (post.postType == "FOUND") Color(0xFFE1BEE7) else Color(0xFFBBDEFB),
-                        RoundedCornerShape(8.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF5F5F5))
             ) {
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = "Post image",
-                    tint = if (post.postType == "FOUND") Color(0xFF6A1B9A) else Color(0xFF1976D2),
-                    modifier = Modifier.size(32.dp)
-                )
+                if (post.imageUrls.isNotEmpty()) {
+                    val imagePath = post.imageUrls.first()
+                    val imageFile = File(imagePath)
+
+                    if (imageFile.exists() && imageFile.canRead()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = imageFile),
+                            contentDescription = "Post image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFFFCDD2)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = "Image not found",
+                                    tint = Color(0xFFC62828),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "File not found",
+                                    color = Color(0xFFC62828),
+                                    fontSize = 8.sp
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                if (post.postType == "FOUND")
+                                    Color(0xFFE1BEE7)
+                                else
+                                    Color(0xFFBBDEFB)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "No image",
+                            tint = if (post.postType == "FOUND")
+                                Color(0xFF6A1B9A)
+                            else
+                                Color(0xFF1976D2),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp),
+                    color = if (post.postType == "FOUND")
+                        Color(0xFFE1BEE7)
+                    else
+                        Color(0xFFBBDEFB),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = post.postType,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                        color = if (post.postType == "FOUND")
+                            Color(0xFF6A1B9A)
+                        else
+                            Color(0xFF1976D2),
+                        fontSize = 10.sp
+                    )
+                }
             }
 
-            // 右側：文字資訊
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -192,7 +268,7 @@ fun SavedPostCard(
                         text = post.title,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
@@ -210,24 +286,41 @@ fun SavedPostCard(
                     }
                 }
 
-                Text(
-                    text = post.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        color = Color(0xFFFFE0B2),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = post.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFE65100),
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
 
-                Text(
-                    text = post.postType,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (post.postType == "FOUND") Color(0xFF6A1B9A) else Color(0xFF1976D2),
-                    fontWeight = FontWeight.Medium
-                )
+                    Text(
+                        text = post.date,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
 
-                Text(
-                    text = post.date,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
+                if (post.description.isNotEmpty()) {
+                    Text(
+                        text = post.description.take(60) + if (post.description.length > 60) "..." else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF666666),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }
