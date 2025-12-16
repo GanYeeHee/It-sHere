@@ -124,7 +124,9 @@ private fun HomePageContent(
             DrawerContent(
                 userDisplayName = displayName,
                 userPhone = displayPhone,
-                onSavedClick = { scope.launch { drawerState.close() } },
+                onSavedClick = { scope.launch { drawerState.close() }
+                    navController.navigate("saved")
+                               },
                 onNotificationClick = {
                     navController.navigate("notifications")
                     scope.launch { drawerState.close() }

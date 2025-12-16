@@ -45,6 +45,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -195,6 +196,15 @@ fun AppNavigation() {
                 postId = postId,
                 onBackClick = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable("saved") {
+            SavedScreen(
+                navController = navController,
+                onPostClick = { postId ->
+                    navController.navigate("post_details/$postId")
                 }
             )
         }
