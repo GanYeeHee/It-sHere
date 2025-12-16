@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,7 +44,7 @@ import com.example.itshere.viewModel.LoginViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -111,10 +112,9 @@ fun AppNavigation() {
 
         composable("admin_home") {
             AdminHomeScreenWrapper(
+                navController = navController, // ✅ SAME controller
                 onLogout = {
-                    // This is the navigation action passed down to the Wrapper,
-                    // and then passed to the Logout button inside the drawer.
-                    auth.signOut() // Log out the user from Firebase (good practice)
+                    auth.signOut()
                     navController.navigate("login") {
                         popUpTo("login") { inclusive = true }
                     }
@@ -138,6 +138,22 @@ fun AppNavigation() {
                 }
             )
         }
+        composable("item_list") {
+            ItemListScreen(navController = navController)
+        }
+        composable("new_request") {
+            NewRequestScreen(navController = navController)
+        }
+        composable("claimed") {
+            ClaimedScreen(navController = navController)
+        }
+        composable("rejected") {
+            RejectedClaimScreen(navController = navController)
+        }
+        composable("users") {
+            UserListScreen(navController = navController)
+        }
+
 
         composable(
             route = "create_post/{postType}",
@@ -212,7 +228,6 @@ fun AdminDrawerContent(
     onCloseDrawer: () -> Unit,
     onNavigateToUserList: () -> Unit = {},
     onNavigateToReports: () -> Unit = {}
-    // Add other navigation functions here later
 ) {
     ModalDrawerSheet(
         modifier = Modifier
@@ -223,7 +238,7 @@ fun AdminDrawerContent(
     ) {
         Image(
             painter = painterResource(R.drawable.back_arrow),
-            contentDescription = null,
+            contentDescription = "back",
             modifier = Modifier
                 .size(70.dp)
                 .padding(top = 40.dp )
@@ -234,7 +249,7 @@ fun AdminDrawerContent(
         ) {
             Image(
                 painter = painterResource(R.drawable.people),
-                contentDescription = null,
+                contentDescription = "admin head",
                 modifier = Modifier
                     .size(50.dp)
                     .padding(start = 16.dp)
@@ -330,6 +345,7 @@ fun AdminDrawerContent(
 
 @Composable
 fun AdminHomeScreenWrapper(
+    navController: NavController,
     onLogout: () -> Unit // Logout function passed from NavHost
 ) {
     // State and Scope to manage the opening and closing of the drawer
@@ -349,12 +365,18 @@ fun AdminHomeScreenWrapper(
                 onLogout = {
                     scope.launch { drawerState.close() } // Close drawer on click
                     onLogout() // Execute logout action
+                },
+                onNavigateToUserList = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("users")
                 }
+
             )
         },
         content = {
             // AdminHome needs the function to trigger the drawer open
             AdminHome(
+                navController = navController,
                 onOpenDrawer = {
                     scope.launch {
                         drawerState.open()

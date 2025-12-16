@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.itshere.ui.theme.ItsHereTheme
 
 @Composable
@@ -56,12 +58,13 @@ fun Greeting(
 
 @Composable
 fun AdminHome(
+    navController: NavController,
     modifier: Modifier = Modifier,
     onOpenDrawer: () -> Unit
 ) {
 
     Column(modifier
-        .padding(top = 60.dp)
+        .padding(top = 60.dp),
     ) {
         Row {
             IconButton(
@@ -90,7 +93,7 @@ fun AdminHome(
                     color = Color(0xFFBFC6FF),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {}
+                .clickable {navController.navigate("item_list")}
         ) {
             Text(
                 text = "Item list",
@@ -118,7 +121,7 @@ fun AdminHome(
                     color = Color(0xFFBFC6FF),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {}
+                .clickable {navController.navigate("new_request")}
         ) {
             Text(
                 text = "New Request",
@@ -147,7 +150,7 @@ fun AdminHome(
                     color = Color(0xFFe0e0e0),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {}
+                .clickable {navController.navigate("claimed")}
         ) {
             Text(
                 text = "Claimed",
@@ -175,7 +178,7 @@ fun AdminHome(
                     color = Color(0xFFfacdcd),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {}
+                .clickable {navController.navigate("rejected")}
         ) {
             Text(
                 text = "Rejected Claims",
@@ -200,7 +203,7 @@ fun AdminHome(
 @Composable
 fun PreAdminHome() {
     ItsHereTheme {
-        AdminHome(onOpenDrawer = {})
+        AdminHome(rememberNavController(), onOpenDrawer = {})
     }
 }
 

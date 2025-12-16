@@ -16,10 +16,10 @@ import kotlinx.coroutines.internal.synchronized
 @Database(
     entities = [
         User::class,
-        LocalImage::class,
-        Admin::class
+        Admin::class,
+        LocalImage::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
