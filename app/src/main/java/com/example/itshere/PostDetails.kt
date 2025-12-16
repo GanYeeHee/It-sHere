@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -419,29 +420,31 @@ fun ContactDialog(
 
 @Composable
 fun PostImageSection(imageUrls: List<String>) {
+    var currentImageIndex by remember { mutableStateOf(0) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFFF5F5F5)),
-        contentAlignment = Alignment.Center
+            .background(Color(0xFFF5F5F5))
     ) {
         if (imageUrls.isNotEmpty()) {
-            val imagePath = imageUrls.first()
+            val imagePath = imageUrls[currentImageIndex]
             val imageFile = File(imagePath)
 
             if (imageFile.exists() && imageFile.canRead()) {
                 Image(
                     painter = rememberAsyncImagePainter(model = imageFile),
-                    contentDescription = "Post Image",
+                    contentDescription = "Post Image ${currentImageIndex + 1}",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Icon(
                         imageVector = Icons.Default.BrokenImage,
@@ -457,10 +460,101 @@ fun PostImageSection(imageUrls: List<String>) {
                     )
                 }
             }
+
+            if (imageUrls.size > 1) {
+                if (currentImageIndex > 0) {
+                    IconButton(
+                        onClick = { currentImageIndex-- },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronLeft,
+                                    contentDescription = "Previous image",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (currentImageIndex < imageUrls.size - 1) {
+                    IconButton(
+                        onClick = { currentImageIndex++ },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Next image",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    imageUrls.forEachIndexed { index, _ ->
+                        Surface(
+                            shape = CircleShape,
+                            color = if (index == currentImageIndex)
+                                Color.White
+                            else
+                                Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(8.dp)
+                        ) {}
+                    }
+                }
+
+                Surface(
+                    color = Color.Black.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "${currentImageIndex + 1}/${imageUrls.size}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
         } else {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
                 Icon(
                     imageVector = Icons.Default.Image,
