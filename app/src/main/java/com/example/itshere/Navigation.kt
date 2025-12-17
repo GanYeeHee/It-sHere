@@ -1,5 +1,20 @@
 package com.example.itshere
-
+import com.example.itshere.AboutUsScreen
+import com.example.itshere.AdminHome
+import com.example.itshere.ClaimedScreen
+import com.example.itshere.CreatePostPage
+import com.example.itshere.HomePage
+import com.example.itshere.ItemListScreen
+import com.example.itshere.LoginScreen
+import com.example.itshere.NewRequestScreen
+import com.example.itshere.NotificationsScreen
+import com.example.itshere.PostDetailsScreen
+import com.example.itshere.RejectedClaimScreen
+import com.example.itshere.SavedScreen
+import com.example.itshere.SettingsScreen
+import com.example.itshere.SignUpScreen
+import com.example.itshere.UserDetailScreen
+import com.example.itshere.UserListScreen
 
 import android.app.Application
 import android.os.Build
@@ -47,6 +62,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -140,6 +156,17 @@ fun AppNavigation() {
                 }
             )
         }
+
+        // 添加 Saved 頁面路由
+        composable("saved") {
+            SavedScreen(
+                navController = navController,
+                onPostClick = { postId ->
+                    navController.navigate("post_details/$postId")
+                }
+            )
+        }
+
         composable("item_list") {
             ItemListScreen(navController = navController)
         }
