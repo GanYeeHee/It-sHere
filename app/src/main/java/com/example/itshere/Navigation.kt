@@ -392,6 +392,10 @@ fun AdminHomeScreenWrapper(
                 onNavigateToUserList = {
                     scope.launch { drawerState.close() }
                     navController.navigate("users")
+                },
+                onNavigateToReports = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("report") // <-- NEW route
                 }
 
             )
