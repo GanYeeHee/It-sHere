@@ -48,7 +48,6 @@ fun SavedScreen(
     val state by viewModel.state.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
 
-    // 篩選出收藏的帖子
     val savedPosts = remember(state.posts, favorites) {
         state.posts.filter { post ->
             favorites.contains(post.id)
