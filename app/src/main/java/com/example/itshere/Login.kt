@@ -527,7 +527,6 @@ fun LoginScreen(
                 Column {
                     Button(
                         onClick = {
-                            // 重新發送驗證郵件
                             auth.currentUser?.sendEmailVerification()
                                 ?.addOnCompleteListener { task ->
                                     if (task.isSuccessful) {

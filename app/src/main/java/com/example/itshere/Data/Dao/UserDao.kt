@@ -21,7 +21,6 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE user_id = :userId")
     suspend fun getById(userId: String): User?
 
-    // 新增：通過 Firebase UID 查詢用戶
     @Query("SELECT * FROM users WHERE firebase_uid = :firebaseUid LIMIT 1")
     suspend fun getByFirebaseUid(firebaseUid: String): User?
 
