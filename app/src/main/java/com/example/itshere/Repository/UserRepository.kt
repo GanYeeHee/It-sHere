@@ -26,7 +26,6 @@ class UserRepository @Inject constructor(
         return userDao.getById(userId)
     }
 
-    // 新增：通過 Firebase UID 獲取用戶
     suspend fun getUserByFirebaseUid(firebaseUid: String): User? {
         return userDao.getByFirebaseUid(firebaseUid)
     }
