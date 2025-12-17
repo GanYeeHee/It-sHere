@@ -228,11 +228,6 @@ fun AppNavigation() {
         composable("notification"){
             NotificationsScreen()
         }
-        composable("report") {
-            ReportPage(
-                onBack = { navController.popBackStack() }
-            )
-        }
     }
 }
 
