@@ -47,6 +47,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -222,6 +223,15 @@ fun AppNavigation() {
             )
         }
 
+        composable("saved") {
+            SavedScreen(
+                navController = navController,
+                onPostClick = { postId ->
+                    navController.navigate("post_details/$postId")
+                }
+            )
+        }
+
         composable("about_us") {
             AboutUsScreen(
                 onBackClick = {
@@ -240,6 +250,11 @@ fun AppNavigation() {
 
         composable("notification"){
             NotificationsScreen()
+        }
+        composable("report") {
+            ReportPage(
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
@@ -392,6 +407,10 @@ fun AdminHomeScreenWrapper(
                 onNavigateToUserList = {
                     scope.launch { drawerState.close() }
                     navController.navigate("users")
+                },
+                onNavigateToReports = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("report") // <-- NEW route
                 }
 
             )
