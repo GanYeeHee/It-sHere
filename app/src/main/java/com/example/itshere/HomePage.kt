@@ -1,3 +1,4 @@
+// file name: HomePage.kt
 package com.example.itshere
 
 import android.app.DatePickerDialog
@@ -30,11 +31,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.PostData
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
 
@@ -70,6 +74,25 @@ private fun HomePageContent(
 ) {
     val state by viewModel.state.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
+    val context = LocalContext.current
+
+    // State for storing user phone number from database
+    var userPhoneFromDb by remember { mutableStateOf("") }
+    var userNameFromDb by remember { mutableStateOf("") }
+
+    // Load user data from Room database when user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser?.uid != null) {
+            withContext(Dispatchers.IO) {
+                val database = AppDatabase.getInstance(context)
+                val user = database.userDao().getByFirebaseUid(currentUser.uid)
+                user?.let {
+                    userPhoneFromDb = it.phone
+                    userNameFromDb = it.name
+                }
+            }
+        }
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -90,15 +113,20 @@ private fun HomePageContent(
         listOf("All", "Electronic", "Clothes", "Cards", "Accessories", "Documents", "Others")
     }
 
+    // Determine what to display in the drawer
+    val displayName = if (userNameFromDb.isNotEmpty()) userNameFromDb else currentUser?.displayName ?: "User"
+    val displayPhone = if (userPhoneFromDb.isNotEmpty()) userPhoneFromDb else currentUser?.phoneNumber ?: "Phone not set"
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
-            // 3. Use the new DrawerContent function here
             DrawerContent(
-                userDisplayName = currentUser?.displayName ?: "User",
-                userPhone = currentUser?.phoneNumber ?: "+6012-3456789",
-                onSavedClick = { scope.launch { drawerState.close() } },
+                userDisplayName = displayName,
+                userPhone = displayPhone,
+                onSavedClick = { scope.launch { drawerState.close() }
+                    navController.navigate("saved")
+                },
                 onNotificationClick = {
                     navController.navigate("notifications")
                     scope.launch { drawerState.close() }
@@ -128,7 +156,7 @@ private fun HomePageContent(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = currentUser?.displayName ?: "User",
+                                text = displayName,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -136,7 +164,6 @@ private fun HomePageContent(
                     },
                     actions = {
                         IconButton(
-                            // 4. Open the drawer instead of setting showMenu = true
                             onClick = { scope.launch { drawerState.open() } }
                         ) {
                             Icon(
@@ -378,7 +405,8 @@ private fun HomePageContent(
                             }
                         }
                     }
-                // 6. KEEP the Logout Dialog rendering logic
+
+                    // Logout Dialog
                     if (showLogoutDialog) {
                         AlertDialog(
                             onDismissRequest = { showLogoutDialog = false },
@@ -517,6 +545,7 @@ fun DrawerContent(
         }
     }
 }
+
 @Composable
 fun MenuItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -702,6 +731,7 @@ fun PostCardGrid(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateFilterDialog(
@@ -825,7 +855,6 @@ fun PostData.timestampToDateString(): String {
 @Preview(showBackground = true)
 @Composable
 fun PreDrawerContent() {
-    // You'll need to update the preview to show the new DrawerContent function
     DrawerContent(
         onLogoutClick = {},
         onSavedClick = {},
