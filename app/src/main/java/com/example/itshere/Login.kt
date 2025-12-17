@@ -35,8 +35,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 
-private const val ADMIN_EMAIL = "admin25@itshere.com"
-private const val ADMIN_PASSWORD = "itsMin!pro25"
+private const val ADMIN_EMAIL = "admin12"
+private const val ADMIN_PASSWORD = "admin12"
 
 @Composable
 fun LoginScreen(

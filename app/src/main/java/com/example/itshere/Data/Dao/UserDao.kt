@@ -1,4 +1,3 @@
-// file name: UserDao.kt
 package com.example.itshere.Data.Dao
 
 import androidx.room.Dao
@@ -22,14 +21,8 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE user_id = :userId")
     suspend fun getById(userId: String): User?
 
-    @Query("SELECT * FROM users WHERE firebase_uid = :firebaseUid")
-    suspend fun getByFirebaseUid(firebaseUid: String): User?
-
     @Query("SELECT * FROM users")
     suspend fun getAll(): List<User>
-
-    @Query("SELECT * FROM users")
-    fun getAllFlow(): Flow<List<User>>
 
     @Delete
     suspend fun delete(user: User)

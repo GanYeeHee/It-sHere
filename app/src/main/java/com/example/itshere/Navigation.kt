@@ -39,13 +39,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.PostType
+import com.example.itshere.Repository.UserRepository
 import com.example.itshere.viewModel.LoginViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -152,8 +153,29 @@ fun AppNavigation() {
             RejectedClaimScreen(navController = navController)
         }
         composable("users") {
-            UserListScreen(navController = navController)
+
+            val context = LocalContext.current
+            val database = AppDatabase.getInstance(context)
+            val repository = UserRepository(database)
+
+            UserListScreen(
+                navController = navController,
+                repository = repository
+            )
         }
+        composable(
+            route = "userDetail/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val context = LocalContext.current
+            val database = AppDatabase.getInstance(context)
+            val repository = UserRepository(database)
+
+            UserDetailScreen(navController, userId, repository)
+        }
+
 
 
         composable(
@@ -196,15 +218,6 @@ fun AppNavigation() {
                 postId = postId,
                 onBackClick = {
                     navController.popBackStack()
-                }
-            )
-        }
-
-        composable("saved") {
-            SavedScreen(
-                navController = navController,
-                onPostClick = { postId ->
-                    navController.navigate("post_details/$postId")
                 }
             )
         }

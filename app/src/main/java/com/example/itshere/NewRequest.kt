@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,11 +26,21 @@ fun NewRequestScreen(navController: NavController, modifier: Modifier = Modifier
         modifier.fillMaxSize()
     ){
         Image(
+            painter = painterResource(R.drawable.bell), // <-- REPLACE with your actual background resource ID
+            contentDescription = null, // Background images don't need a description for accessibility
+            modifier = Modifier
+                .size(250.dp)
+                .align(Alignment.Center)
+                .alpha(0.1f),
+            contentScale = ContentScale.Crop // Crucial: Scales the image to fill the bounds without distortion
+        )
+
+        Image(
             painter = painterResource(R.drawable.back_arrow),
             contentDescription = "back",
             modifier = Modifier
                 .size(90.dp)
-                .padding(top = 55.dp )
+                .padding(top = 60.dp )
                 .clickable{navController.navigateUp()}
         )
         Text(
@@ -37,7 +49,7 @@ fun NewRequestScreen(navController: NavController, modifier: Modifier = Modifier
             fontWeight = FontWeight.Bold ,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 60.dp)
+                .padding(top = 65.dp)
         )
     }
 }
