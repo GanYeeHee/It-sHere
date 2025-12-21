@@ -1,20 +1,4 @@
 package com.example.itshere
-import com.example.itshere.AboutUsScreen
-import com.example.itshere.AdminHome
-import com.example.itshere.ClaimedScreen
-import com.example.itshere.CreatePostPage
-import com.example.itshere.HomePage
-import com.example.itshere.ItemListScreen
-import com.example.itshere.LoginScreen
-import com.example.itshere.NewRequestScreen
-import com.example.itshere.NotificationsScreen
-import com.example.itshere.PostDetailsScreen
-import com.example.itshere.RejectedClaimScreen
-import com.example.itshere.SavedScreen
-import com.example.itshere.SettingsScreen
-import com.example.itshere.SignUpScreen
-import com.example.itshere.UserDetailScreen
-import com.example.itshere.UserListScreen
 
 import android.app.Application
 import android.os.Build
@@ -58,6 +42,8 @@ import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.PostType
 import com.example.itshere.Repository.UserRepository
 import com.example.itshere.viewModel.LoginViewModel
+import com.example.itshere.viewModel.PostViewModel
+import com.example.itshere.viewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -68,7 +54,13 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
 
+    // Inside your NavHost setup
     val context = LocalContext.current
+    // Create the ViewModel ONCE here
+    val sharedPostViewModel: PostViewModel = viewModel(
+        factory = PostViewModelFactory.getFactory(context)
+    )
+
     val application = context.applicationContext as Application // Safely get Application instance
 
 
@@ -83,7 +75,18 @@ fun AppNavigation() {
         }
     }
 
+    val postViewModelFactory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(PostViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return PostViewModel(application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
     val loginViewModel: LoginViewModel = viewModel(factory = loginViewModelFactory)
+    val postViewModel: PostViewModel = viewModel(factory = postViewModelFactory)
 
 
     NavHost(
@@ -131,6 +134,7 @@ fun AppNavigation() {
         composable("admin_home") {
             AdminHomeScreenWrapper(
                 navController = navController, // ✅ SAME controller
+                viewModel = sharedPostViewModel,
                 onLogout = {
                     auth.signOut()
                     navController.navigate("login") {
@@ -167,10 +171,33 @@ fun AppNavigation() {
         }
 
         composable("item_list") {
-            ItemListScreen(navController = navController)
+            ItemListScreen(
+                navController = navController,
+                viewModel = postViewModel // Shared instance
+            )
         }
-        composable("new_request") {
-            NewRequestScreen(navController = navController)
+        composable(
+            route = "admin_item_detail/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            // Observe the state from the shared ViewModel
+            val state by postViewModel.state.collectAsState()
+            val post = state.posts.find { it.id == postId }
+
+            post?.let {
+                AdminItemDetailScreen(
+                    post = it,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable("new_request_screen") {
+            NewRequestScreen(
+                navController = navController,
+                viewModel = sharedPostViewModel // Pass the same instance
+            )
         }
         composable("claimed") {
             ClaimedScreen(navController = navController)
@@ -246,9 +273,8 @@ fun AppNavigation() {
 
             PostDetailsScreen(
                 postId = postId,
-                onBackClick = {
-                    navController.popBackStack()
-                }
+                viewModel = sharedPostViewModel, // Pass the same instance
+                onBackClick = { navController.popBackStack() }
             )
         }
 
@@ -399,6 +425,7 @@ fun AdminDrawerContent(
 @Composable
 fun AdminHomeScreenWrapper(
     navController: NavController,
+    viewModel: PostViewModel,
     onLogout: () -> Unit // Logout function passed from NavHost
 ) {
     // State and Scope to manage the opening and closing of the drawer
@@ -434,6 +461,7 @@ fun AdminHomeScreenWrapper(
             // AdminHome needs the function to trigger the drawer open
             AdminHome(
                 navController = navController,
+                viewModel = viewModel,
                 onOpenDrawer = {
                     scope.launch {
                         drawerState.open()

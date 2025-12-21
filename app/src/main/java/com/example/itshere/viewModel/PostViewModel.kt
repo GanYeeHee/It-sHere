@@ -14,6 +14,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -31,21 +32,22 @@ data class PostState(
 class PostViewModel(private val context: Context) : ViewModel() {
     private val _state = MutableStateFlow(PostState())
     val state: StateFlow<PostState> = _state
-
     private val _favorites = MutableStateFlow<Set<String>>(emptySet())
     val favorites: StateFlow<Set<String>> = _favorites
-
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     private val database = AppDatabase.getInstance(context)
     private val localImageDao = database.localImageDao()
+    private val tag = "PostViewModel"
+    private val _requests = MutableStateFlow<List<ClaimRequest>>(emptyList())
+    val requests: StateFlow<List<ClaimRequest>> = _requests.asStateFlow()
 
-    private val TAG = "PostViewModel"
 
     init {
-        Log.d(TAG, "🎯 PostViewModel initialized - LOCAL FILE PATH VERSION")
+        Log.d(tag, "PostViewModel initialized - LOCAL FILE PATH VERSION")
         loadPosts()
         loadFavorites()
+        loadClaimRequests()
     }
 
     fun loadPosts() {
@@ -67,15 +69,15 @@ class PostViewModel(private val context: Context) : ViewModel() {
                             val posts = snapshot?.documents?.mapNotNull { doc ->
                                 try {
                                     val post = doc.toObject(PostData::class.java)?.copy(id = doc.id)
-                                    // 設置收藏狀態
+
                                     post?.copy(isFavorite = _favorites.value.contains(post.id))
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Error parsing post: ${e.message}")
+                                    Log.e(tag, "Error parsing post: ${e.message}")
                                     null
                                 }
                             } ?: emptyList()
 
-                            Log.d(TAG, "📦 Loaded ${posts.size} posts")
+                            Log.d(tag, "Loaded ${posts.size} posts")
 
                             _state.value = _state.value.copy(
                                 posts = posts,
@@ -103,7 +105,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                         snapshot?.let {
                             val favoriteIds = it.documents.map { doc -> doc.id }.toSet()
                             _favorites.value = favoriteIds
-                            Log.d(TAG, "Loaded ${favoriteIds.size} favorites")
+                            Log.d(tag, "Loaded ${favoriteIds.size} favorites")
 
                             // 更新 posts 中的收藏狀態
                             val updatedPosts = _state.value.posts.map { post ->
@@ -113,7 +115,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                         }
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading favorites: ${e.message}")
+                Log.e(tag, "Error loading favorites: ${e.message}")
             }
         }
     }
@@ -131,7 +133,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
-            Log.d(TAG, "🚀 Starting createPost - USING LOCAL FILE PATHS")
+            Log.d(tag, "Starting createPost - USING LOCAL FILE PATHS")
             _state.value = _state.value.copy(isLoading = true, uploadProgress = 0f)
 
             try {
@@ -142,7 +144,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     throw Exception("User not authenticated")
                 }
 
-                Log.d(TAG, "📸 Processing ${images.size} images")
+                Log.d(tag, "Processing ${images.size} images")
 
                 val filePaths = mutableListOf<String>()
                 images.forEachIndexed { index, image ->
@@ -150,13 +152,13 @@ class PostViewModel(private val context: Context) : ViewModel() {
                         val filePath = copyImageAndGetFilePath(image.uri, postId, index)
                         if (filePath != null) {
                             filePaths.add(filePath)
-                            Log.d(TAG, "  ✓ Copied image $index: $filePath")
+                            Log.d(tag, "  ✓ Copied image $index: $filePath")
 
                             val progress = (index + 1).toFloat() / images.size.toFloat()
                             _state.value = _state.value.copy(uploadProgress = progress)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to copy image: ${e.message}", e)
+                        Log.e(tag, "Failed to copy image: ${e.message}", e)
                     }
                 }
 
@@ -164,7 +166,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     throw Exception("Failed to save images")
                 }
 
-                Log.d(TAG, "💾 Saving images to Room database")
+                Log.d(tag, "Saving images to Room database")
                 val localImages = filePaths.map { path ->
                     LocalImage(
                         postId = postId,
@@ -174,7 +176,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     )
                 }
                 localImageDao.insertAll(localImages)
-                Log.d(TAG, "✓ Saved ${localImages.size} images to Room")
+                Log.d(tag, "✓ Saved ${localImages.size} images to Room")
 
                 val questionMaps = questions.map {
                     mapOf("question" to it.question, "answer" to it.answer)
@@ -196,16 +198,16 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     isFavorite = false
                 )
 
-                Log.d(TAG, "☁️ Saving post to Firestore")
-                Log.d(TAG, "  Post ID: $postId")
-                Log.d(TAG, "  Image Paths: ${post.imageUrls}")
+                Log.d(tag, "Saving post to Firestore")
+                Log.d(tag, "  Post ID: $postId")
+                Log.d(tag, "  Image Paths: ${post.imageUrls}")
 
                 firestore.collection("posts")
                     .document(postId)
                     .set(post)
                     .await()
 
-                Log.d(TAG, "✅ Post saved successfully!")
+                Log.d(tag, "Post saved successfully!")
 
                 val currentPosts = _state.value.posts.toMutableList()
                 currentPosts.add(0, post)
@@ -221,7 +223,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Error creating post: ${e.message}", e)
+                Log.e(tag, "Error creating post: ${e.message}", e)
                 e.printStackTrace()
                 _state.value = _state.value.copy(
                     isLoading = false,
@@ -258,7 +260,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
 
             destFile.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "Error copying image: ${e.message}", e)
+            Log.e(tag, "Error copying image: ${e.message}", e)
             null
         }
     }
@@ -275,17 +277,16 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val doc = favoriteRef.get().await()
                 if (doc.exists()) {
                     favoriteRef.delete().await()
-                    // 更新本地狀態
+
                     val newFavorites = _favorites.value - postId
                     _favorites.value = newFavorites
                 } else {
                     favoriteRef.set(mapOf("timestamp" to System.currentTimeMillis())).await()
-                    // 更新本地狀態
+
                     val newFavorites = _favorites.value + postId
                     _favorites.value = newFavorites
                 }
 
-                // 更新 posts 中的收藏狀態
                 val updatedPosts = _state.value.posts.map { post ->
                     if (post.id == postId) {
                         post.copy(isFavorite = !post.isFavorite)
@@ -296,8 +297,50 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 _state.value = _state.value.copy(posts = updatedPosts)
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error toggling favorite: ${e.message}")
+                Log.e(tag, "Error toggling favorite: ${e.message}")
+            }
+        }
+    }
+    fun submitClaimRequest(postId: String, postTitle: String, answers: List<String>) {
+
+        val newRequest = ClaimRequest(
+            postId = postId,
+            postTitle = postTitle,
+            answers = answers,
+            timestamp = System.currentTimeMillis()
+        )
+        // Save to Firestore so it stays forever
+        viewModelScope.launch {
+            try {
+                firestore.collection("claims")
+                    .add(newRequest)
+                    .await()
+                Log.d(tag, "Claim request synced to Firestore")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to sync claim: ${e.message}")
+            }
+        }
+    }
+    fun loadClaimRequests() {
+        viewModelScope.launch {
+            try {
+                firestore.collection("claims")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) return@addSnapshotListener
+
+                        val list = snapshot?.documents?.mapNotNull { doc ->
+                            doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
+                        } ?: emptyList()
+
+                        _requests.value = list
+                        Log.d(tag, "Loaded ${list.size} claims from Firestore")
+                    }
+            } catch (e: Exception) {
+                Log.e(tag, "Error loading claims: ${e.message}")
             }
         }
     }
 }
+
+
