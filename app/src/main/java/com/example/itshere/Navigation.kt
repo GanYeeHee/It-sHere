@@ -215,9 +215,13 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val postTypeString = backStackEntry.arguments?.getString("postType") ?: "found"
             val postType = if (postTypeString == "lost") PostType.LOST else PostType.FOUND
+            val currentUserPhone = remember {
+            ""
+            }
 
             CreatePostPage(
                 postType = postType,
+                userPhone = currentUserPhone,
                 onBackClick = {
                     navController.popBackStack()
                 },

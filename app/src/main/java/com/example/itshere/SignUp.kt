@@ -164,8 +164,12 @@ fun SignUpScreen(
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = { newValue ->
-                        val filteredValue = newValue.filter { it.isDigit() }
-                        viewModel.onPhoneChange(filteredValue)
+                        if (newValue.length <= 11) {
+                            val filteredValue = newValue.filter { it.isDigit() }
+                            if (filteredValue.length <= 11) {
+                                viewModel.onPhoneChange(filteredValue)
+                            }
+                        }
                     },
                     placeholder = { Text("+60 123456789", color = Color.Gray) },
                     modifier = Modifier.fillMaxWidth(),
@@ -188,13 +192,22 @@ fun SignUpScreen(
                     isError = state.phoneError != null,
                     enabled = !state.isLoading
                 )
-                state.phoneError?.let { error ->
+                if (state.phone.isNotEmpty() && state.phone.length != 11) {
                     Text(
-                        text = error,
+                        text = "Phone number must be exactly 11 digits",
                         color = Color.Red,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
+                } else {
+                    state.phoneError?.let { error ->
+                        Text(
+                            text = error,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        )
+                    }
                 }
             }
 

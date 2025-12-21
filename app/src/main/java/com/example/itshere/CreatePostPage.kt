@@ -55,7 +55,8 @@ import java.util.*
 fun CreatePostPage(
     postType: PostType = PostType.FOUND,
     onBackClick: () -> Unit = {},
-    onPostSuccess: () -> Unit = {}
+    onPostSuccess: () -> Unit = {},
+    userPhone: String = ""
 ) {
     val context = LocalContext.current
     val viewModel: PostViewModel = remember { PostViewModel(context) }
@@ -63,7 +64,7 @@ fun CreatePostPage(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedPostType by remember { mutableStateOf(postType) }
-    var phone by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf(userPhone) }
     var date by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -288,7 +289,12 @@ fun CreatePostPage(
                         CustomTextField(
                             value = phone,
                             onValueChange = { newValue ->
-                                phone = newValue.filter { it.isDigit() }
+                                if (newValue.length <= 11) {
+                                    val filteredValue = newValue.filter { it.isDigit() }
+                                    if (filteredValue.length <= 11) {
+                                        phone = filteredValue
+                                    }
+                                }
                             },
                             placeholder = "60112345678",
                             modifier = Modifier.fillMaxWidth(),
@@ -302,6 +308,16 @@ fun CreatePostPage(
                                 )
                             }
                         )
+
+                        if (phone.isNotEmpty() && phone.length != 11) {
+                            Text(
+                                text = "Phone number must be exactly 11 digits",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
