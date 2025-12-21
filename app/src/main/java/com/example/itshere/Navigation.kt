@@ -134,6 +134,7 @@ fun AppNavigation() {
         composable("admin_home") {
             AdminHomeScreenWrapper(
                 navController = navController, // ✅ SAME controller
+                viewModel = sharedPostViewModel,
                 onLogout = {
                     auth.signOut()
                     navController.navigate("login") {
@@ -420,6 +421,7 @@ fun AdminDrawerContent(
 @Composable
 fun AdminHomeScreenWrapper(
     navController: NavController,
+    viewModel: PostViewModel,
     onLogout: () -> Unit // Logout function passed from NavHost
 ) {
     // State and Scope to manage the opening and closing of the drawer
@@ -455,7 +457,7 @@ fun AdminHomeScreenWrapper(
             // AdminHome needs the function to trigger the drawer open
             AdminHome(
                 navController = navController,
-                viewModel = PostViewModel(Application()),
+                viewModel = viewModel,
                 onOpenDrawer = {
                     scope.launch {
                         drawerState.open()

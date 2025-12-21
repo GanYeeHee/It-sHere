@@ -47,6 +47,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
         Log.d(TAG, "🎯 PostViewModel initialized - LOCAL FILE PATH VERSION")
         loadPosts()
         loadFavorites()
+        loadClaimRequests()
     }
 
     fun loadPosts() {
@@ -300,14 +301,43 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-
     fun submitClaimRequest(postId: String, postTitle: String, answers: List<String>) {
         val newRequest = ClaimRequest(
             postId = postId,
             postTitle = postTitle,
             answers = answers
         )
-        _requests.value = _requests.value + newRequest
+        // Save to Firestore so it stays forever
+        viewModelScope.launch {
+            try {
+                firestore.collection("claims")
+                    .add(newRequest)
+                    .await()
+                Log.d(TAG, "✅ Claim request synced to Firestore")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to sync claim: ${e.message}")
+            }
+        }
+    }
+    fun loadClaimRequests() {
+        viewModelScope.launch {
+            try {
+                firestore.collection("claims")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) return@addSnapshotListener
+
+                        val list = snapshot?.documents?.mapNotNull { doc ->
+                            doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
+                        } ?: emptyList()
+
+                        _requests.value = list
+                        Log.d(TAG, "Loaded ${list.size} claims from Firestore")
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading claims: ${e.message}")
+            }
+        }
     }
 }
 

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.itshere.viewModel.PostViewModel
 
 @Composable
 fun Greeting(
@@ -58,7 +59,7 @@ fun Greeting(
 @Composable
 fun AdminHome(
     navController: NavController,
-    viewModel: com.example.itshere.viewModel.PostViewModel,
+    viewModel: PostViewModel,
     modifier: Modifier = Modifier,
     onOpenDrawer: () -> Unit
 ) {
@@ -126,7 +127,7 @@ fun AdminHome(
                 .clickable {navController.navigate("new_request_screen")}
         ) {
             Text(
-                text = "New Request ${requests.size}",
+                text = if (requests.isEmpty()) "New Request" else "New Request (${requests.size})",
                 modifier = Modifier.padding(10.dp),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
