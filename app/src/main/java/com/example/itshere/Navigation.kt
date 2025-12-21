@@ -58,6 +58,7 @@ import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.PostType
 import com.example.itshere.Repository.UserRepository
 import com.example.itshere.viewModel.LoginViewModel
+import com.example.itshere.viewModel.PostViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -83,8 +84,18 @@ fun AppNavigation() {
         }
     }
 
-    val loginViewModel: LoginViewModel = viewModel(factory = loginViewModelFactory)
+    val postViewModelFactory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(PostViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return PostViewModel(application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 
+    val loginViewModel: LoginViewModel = viewModel(factory = loginViewModelFactory)
+    val postViewModel: PostViewModel = viewModel(factory = postViewModelFactory)
 
     NavHost(
         navController = navController,
@@ -167,7 +178,26 @@ fun AppNavigation() {
         }
 
         composable("item_list") {
-            ItemListScreen(navController = navController)
+            ItemListScreen(
+                navController = navController,
+                viewModel = postViewModel // Shared instance
+            )
+        }
+        composable(
+            route = "admin_item_detail/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            // Observe the state from the shared ViewModel
+            val state by postViewModel.state.collectAsState()
+            val post = state.posts.find { it.id == postId }
+
+            post?.let {
+                AdminItemDetailScreen(
+                    post = it,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
         composable("new_request") {
             NewRequestScreen(navController = navController)

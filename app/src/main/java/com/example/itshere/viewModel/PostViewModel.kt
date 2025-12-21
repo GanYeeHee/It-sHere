@@ -67,7 +67,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                             val posts = snapshot?.documents?.mapNotNull { doc ->
                                 try {
                                     val post = doc.toObject(PostData::class.java)?.copy(id = doc.id)
-                                    // 設置收藏狀態
+
                                     post?.copy(isFavorite = _favorites.value.contains(post.id))
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Error parsing post: ${e.message}")

@@ -61,12 +61,9 @@ android {
 }
 
 dependencies {
-    implementation("io.coil-kt:coil-compose:2.4.0")
 
     implementation("com.google.android.gms:play-services-auth:21.0.0")
 
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-auth-ktx")
 
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
 
