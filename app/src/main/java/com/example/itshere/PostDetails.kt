@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.itshere.Data.PostData
@@ -36,13 +37,16 @@ import java.io.File
 @Composable
 fun PostDetailsScreen(
     postId: String,
+    viewModel: PostViewModel,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: PostViewModel = viewModel(
-        factory = PostViewModelFactory.getFactory(context)
-    )
 
+    val viewModel: PostViewModel = viewModel(
+        // Scoping to the LocalContext (Activity) ensures it's the same instance everywhere
+        factory = PostViewModelFactory.getFactory(context),
+        viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner
+    )
     val state by viewModel.state.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val post = state.posts.find { it.id == postId }
@@ -62,6 +66,7 @@ fun PostDetailsScreen(
 
     PostDetailsContent(
         post = post.copy(isFavorite = isFavorite),
+        viewModel = viewModel,
         onBackClick = onBackClick,
         onShareClick = {
             sharePost(context, post)
@@ -107,6 +112,7 @@ private fun sharePost(context: Context, post: PostData) {
 @Composable
 private fun PostDetailsContent(
     post: PostData,
+    viewModel: PostViewModel,
     onBackClick: () -> Unit,
     onShareClick: () -> Unit,
     onFavoriteClick: (Boolean) -> Unit
@@ -254,7 +260,13 @@ private fun PostDetailsContent(
         QuestionAnswerDialog(
             questions = post.questions,
             onDismiss = { showQuestionDialog = false },
-            onSubmit = { answers ->
+            onSubmit = { answers -> // This is a regular lambda, not a Composable
+                // Now this will work because 'viewModel' is in scope!
+                viewModel.submitClaimRequest(
+                    postId = post.id,
+                    postTitle = post.title,
+                    answers = answers
+                )
                 showQuestionDialog = false
             }
         )
@@ -758,58 +770,3 @@ fun BottomActionSection(
     }
 }
 
-@Preview(showBackground = true, name = "Post Details - FOUND")
-@Composable
-fun PostDetailsFoundPreview() {
-    val dummyPost = PostData(
-        id = "preview_id",
-        title = "Blue Backpack (Nike)",
-        description = "I found a blue backpack near the cafeteria. It has a keychain of a bear on it. Please contact me if it's yours.\n\nFound it around 2:00 PM yesterday.",
-        postType = "FOUND",
-        category = "Bag",
-        date = "10/12/2023",
-        phone = "",
-        isFavorite = false,
-        imageUrls = emptyList(),
-        questions = listOf(
-            mapOf("question" to "What color is the keychain?", "answer" to "Brown bear"),
-            mapOf("question" to "What's inside the main pocket?", "answer" to "Laptop"),
-            mapOf("question" to "Where did you last see it?", "answer" to "Library")
-        )
-    )
-
-    MaterialTheme {
-        PostDetailsContent(
-            post = dummyPost,
-            onBackClick = {},
-            onShareClick = {},
-            onFavoriteClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Post Details - LOST")
-@Composable
-fun PostDetailsLostPreview() {
-    val dummyPost = PostData(
-        id = "preview_id",
-        title = "Lost AirPods Pro",
-        description = "I lost my AirPods Pro case somewhere in the library. It has a red sticker on it. Please contact me if you found it!",
-        postType = "LOST",
-        category = "Electronic",
-        date = "09/12/2023",
-        phone = "60112345678",
-        isFavorite = true,
-        imageUrls = emptyList(),
-        questions = emptyList()
-    )
-
-    MaterialTheme {
-        PostDetailsContent(
-            post = dummyPost,
-            onBackClick = {},
-            onShareClick = {},
-            onFavoriteClick = {}
-        )
-    }
-}

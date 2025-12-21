@@ -1,20 +1,4 @@
 package com.example.itshere
-import com.example.itshere.AboutUsScreen
-import com.example.itshere.AdminHome
-import com.example.itshere.ClaimedScreen
-import com.example.itshere.CreatePostPage
-import com.example.itshere.HomePage
-import com.example.itshere.ItemListScreen
-import com.example.itshere.LoginScreen
-import com.example.itshere.NewRequestScreen
-import com.example.itshere.NotificationsScreen
-import com.example.itshere.PostDetailsScreen
-import com.example.itshere.RejectedClaimScreen
-import com.example.itshere.SavedScreen
-import com.example.itshere.SettingsScreen
-import com.example.itshere.SignUpScreen
-import com.example.itshere.UserDetailScreen
-import com.example.itshere.UserListScreen
 
 import android.app.Application
 import android.os.Build
@@ -59,6 +43,7 @@ import com.example.itshere.Data.PostType
 import com.example.itshere.Repository.UserRepository
 import com.example.itshere.viewModel.LoginViewModel
 import com.example.itshere.viewModel.PostViewModel
+import com.example.itshere.viewModel.PostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -69,7 +54,13 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
 
+    // Inside your NavHost setup
     val context = LocalContext.current
+    // Create the ViewModel ONCE here
+    val sharedPostViewModel: PostViewModel = viewModel(
+        factory = PostViewModelFactory.getFactory(context)
+    )
+
     val application = context.applicationContext as Application // Safely get Application instance
 
 
@@ -96,6 +87,7 @@ fun AppNavigation() {
 
     val loginViewModel: LoginViewModel = viewModel(factory = loginViewModelFactory)
     val postViewModel: PostViewModel = viewModel(factory = postViewModelFactory)
+
 
     NavHost(
         navController = navController,
@@ -199,8 +191,12 @@ fun AppNavigation() {
                 )
             }
         }
-        composable("new_request") {
-            NewRequestScreen(navController = navController)
+
+        composable("new_request_screen") {
+            NewRequestScreen(
+                navController = navController,
+                viewModel = sharedPostViewModel // Pass the same instance
+            )
         }
         composable("claimed") {
             ClaimedScreen(navController = navController)
@@ -272,9 +268,8 @@ fun AppNavigation() {
 
             PostDetailsScreen(
                 postId = postId,
-                onBackClick = {
-                    navController.popBackStack()
-                }
+                viewModel = sharedPostViewModel, // Pass the same instance
+                onBackClick = { navController.popBackStack() }
             )
         }
 
@@ -460,6 +455,7 @@ fun AdminHomeScreenWrapper(
             // AdminHome needs the function to trigger the drawer open
             AdminHome(
                 navController = navController,
+                viewModel = PostViewModel(Application()),
                 onOpenDrawer = {
                     scope.launch {
                         drawerState.open()

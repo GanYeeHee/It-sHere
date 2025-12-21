@@ -14,6 +14,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -31,16 +32,16 @@ data class PostState(
 class PostViewModel(private val context: Context) : ViewModel() {
     private val _state = MutableStateFlow(PostState())
     val state: StateFlow<PostState> = _state
-
     private val _favorites = MutableStateFlow<Set<String>>(emptySet())
     val favorites: StateFlow<Set<String>> = _favorites
-
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     private val database = AppDatabase.getInstance(context)
     private val localImageDao = database.localImageDao()
-
     private val TAG = "PostViewModel"
+    private val _requests = MutableStateFlow<List<ClaimRequest>>(emptyList())
+    val requests: StateFlow<List<ClaimRequest>> = _requests.asStateFlow()
+
 
     init {
         Log.d(TAG, "🎯 PostViewModel initialized - LOCAL FILE PATH VERSION")
@@ -285,7 +286,6 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     _favorites.value = newFavorites
                 }
 
-                // 更新 posts 中的收藏狀態
                 val updatedPosts = _state.value.posts.map { post ->
                     if (post.id == postId) {
                         post.copy(isFavorite = !post.isFavorite)
@@ -300,4 +300,15 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
+    fun submitClaimRequest(postId: String, postTitle: String, answers: List<String>) {
+        val newRequest = ClaimRequest(
+            postId = postId,
+            postTitle = postTitle,
+            answers = answers
+        )
+        _requests.value = _requests.value + newRequest
+    }
 }
+
+

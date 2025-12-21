@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -26,12 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.itshere.ui.theme.ItsHereTheme
 
 @Composable
 fun Greeting(
@@ -59,9 +58,12 @@ fun Greeting(
 @Composable
 fun AdminHome(
     navController: NavController,
+    viewModel: com.example.itshere.viewModel.PostViewModel,
     modifier: Modifier = Modifier,
     onOpenDrawer: () -> Unit
 ) {
+
+    val requests by viewModel.requests.collectAsState()
 
     Column(modifier
         .padding(top = 60.dp),
@@ -121,10 +123,10 @@ fun AdminHome(
                     color = Color(0xFFBFC6FF),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {navController.navigate("new_request")}
+                .clickable {navController.navigate("new_request_screen")}
         ) {
             Text(
-                text = "New Request",
+                text = "New Request ${requests.size}",
                 modifier = Modifier.padding(10.dp),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
@@ -199,11 +201,5 @@ fun AdminHome(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun PreAdminHome() {
-    ItsHereTheme {
-        AdminHome(rememberNavController(), onOpenDrawer = {})
-    }
-}
+
 
