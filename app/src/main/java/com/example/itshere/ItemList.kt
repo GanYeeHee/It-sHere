@@ -1,5 +1,6 @@
 package com.example.itshere
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,8 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -187,18 +190,19 @@ fun AdminItemCard(post: PostData, onClick: () -> Unit) {
 }
 @Composable
 fun AdminItemDetailScreen(post: PostData, onBack: () -> Unit) {
-
+    // We use Column with verticalScroll to make the entire page a single scrollable unit
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
+            .background(Color.White)
+            .verticalScroll(rememberScrollState()) // Enables vertical scrolling for the whole content
+            .padding(bottom = 32.dp) // Extra padding at bottom for better scrolling experience
     ) {
-        // Header with Back Button and ID
+        // --- Header Section ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 60.dp),
+                .padding(top = 60.dp, start = 8.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
@@ -209,7 +213,7 @@ fun AdminItemDetailScreen(post: PostData, onBack: () -> Unit) {
                 )
             }
             Text(
-                text = "Details",
+                text = "Item Details",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp)
@@ -218,70 +222,148 @@ fun AdminItemDetailScreen(post: PostData, onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Image Gallery (Horizontal Scroll)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // --- Horizontal Image Gallery ---
+        // LazyRow inside a vertical scrollable Column is fine as long as it has a fixed height
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             items(post.imageUrls) { path ->
-                Image(
-                    painter = rememberAsyncImagePainter(model = File(path)),
-                    contentDescription = "Item Image",
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = File(path)),
+                        contentDescription = "Item Image",
+                        modifier = Modifier
+                            .size(220.dp) // Slightly larger for detail view
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // --- Text Content Section ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Common Details
-        Text(text = post.title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text(text = "Category: ${post.category}", color = Color.Gray)
-        Text(text = "Date: ${post.date}")
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Description:", fontWeight = FontWeight.SemiBold)
-        Text(text = post.description)
+            Text(text = post.title, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 16.dp),
-            thickness = DividerDefaults.Thickness,
-            color = DividerDefaults.color
-        )
-
-        // CONDITIONAL LAYOUT: FOUND vs LOST
-        if (post.postType == "FOUND") {
-            // Layout for FOUND items: Show Questions and Answers
-            Text("Validation Questions", color = Color(0xFF824DFF), fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            post.questions.forEachIndexed { index, qna ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+            Row(modifier = Modifier.padding(vertical = 4.dp)) {
+                Surface(
+                    color = if (post.postType == "FOUND") Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                    shape = RoundedCornerShape(4.dp)
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Q${index + 1}: ${qna["question"]}", fontWeight = FontWeight.Medium)
-                        Text("A: ${qna["answer"]}", color = Color(0xFF388E3C))
+                    Text(
+                        text = post.postType,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        color = if (post.postType == "FOUND") Color(0xFF2E7D32) else Color(0xFFC62828),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = post.category, color = Color.Gray, fontSize = 14.sp)
+            }
+
+            Text(text = "Reported on: ${post.date}", fontSize = 14.sp, color = Color.DarkGray)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(text = "Description", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                text = post.description,
+                style = MaterialTheme.typography.bodyLarge,
+                lineHeight = 22.sp
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+
+            // --- Conditional Logic for FOUND vs LOST ---
+            if (post.postType == "FOUND") {
+                Text(
+                    text = "Validation Questions",
+                    color = Color(0xFF6200EE),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // We use forEach instead of a nested LazyColumn to keep the whole page scrollable
+                post.questions.forEachIndexed { index, qna ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F6FF)),
+                        border = BorderStroke(1.dp, Color(0xFFE1D5FF))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Question ${index + 1}",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF6200EE),
+                                fontSize = 12.sp
+                            )
+                            Text(text = qna["question"] ?: "", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Correct Answer",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32),
+                                fontSize = 12.sp
+                            )
+                            Text(text = qna["answer"] ?: "", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = "Contact Information",
+                    color = Color(0xFFC62828),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFFC62828))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = post.phone,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
                     }
                 }
             }
-        } else {
-            // Layout for LOST items: Show Phone Number
-            Text("Contact Information", color = Color.Red, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFBE9E7))
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Red)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = post.phone, fontSize = 18.sp)
-                }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
-        Text("Posted by User ID: ${post.userId}", fontSize = 12.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(40.dp))
+            Text(
+                text = "System ID: ${post.id}",
+                fontSize = 11.sp,
+                color = Color.LightGray
+            )
+            Text(
+                text = "Uploader UID: ${post.userId}",
+                fontSize = 11.sp,
+                color = Color.LightGray
+            )
+        }
     }
 }
 
