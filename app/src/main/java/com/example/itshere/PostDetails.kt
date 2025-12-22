@@ -23,7 +23,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelStoreOwner
@@ -432,7 +431,8 @@ fun ContactDialog(
 
 @Composable
 fun PostImageSection(imageUrls: List<String>) {
-    var currentImageIndex by remember { mutableStateOf(0) }
+
+    var currentImageIndex by remember { mutableIntStateOf(0) }
 
     Box(
         modifier = Modifier

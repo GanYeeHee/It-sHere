@@ -199,11 +199,12 @@ fun AppNavigation() {
                 viewModel = sharedPostViewModel // Pass the same instance
             )
         }
-        composable("claimed") {
-            ClaimedScreen(navController = navController)
+        composable("claimed_screen") {
+            ClaimedScreen(navController = navController, viewModel = sharedPostViewModel)
         }
-        composable("rejected") {
-            RejectedClaimScreen(navController = navController)
+
+        composable("rejected_screen") {
+            RejectedScreen(navController = navController, viewModel = sharedPostViewModel)
         }
         composable("users") {
 

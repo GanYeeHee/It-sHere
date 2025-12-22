@@ -376,9 +376,33 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-
     fun getPostById(postId: String): PostData? {
         return _state.value.posts.find { it.id == postId }
+    }
+
+    fun processClaim(request: ClaimRequest, status: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Determine the destination collection based on button pressed
+                val destination = if (status == "approve") "approved_claims" else "rejected_claims"
+
+                // 1. Save a copy to the new collection (Claimed or Rejected)
+                firestore.collection(destination)
+                    .document(request.id) // Keep the same document ID
+                    .set(request)
+                    .await()
+
+                // 2. Delete it from the "claims" (New Requests) collection
+                firestore.collection("claims")
+                    .document(request.id)
+                    .delete()
+                    .await()
+
+                Log.d("PostViewModel", "Request ${request.id} moved to $destination")
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error processing claim: ${e.message}")
+            }
+        }
     }
 }
 

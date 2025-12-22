@@ -153,7 +153,7 @@ fun AdminHome(
                     color = Color(0xFFe0e0e0),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {navController.navigate("claimed")}
+                .clickable {navController.navigate("claimed_screen")}
         ) {
             Text(
                 text = "Claimed",
@@ -181,7 +181,7 @@ fun AdminHome(
                     color = Color(0xFFfacdcd),
                     shape = RoundedCornerShape(20.dp)
                 )
-                .clickable {navController.navigate("rejected")}
+                .clickable {navController.navigate("rejected_screen")}
         ) {
             Text(
                 text = "Rejected Claims",

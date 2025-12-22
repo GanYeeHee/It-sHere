@@ -4,7 +4,6 @@ import android.text.format.DateUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,17 +23,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,6 +59,7 @@ import com.example.itshere.viewModel.PostViewModel
 import java.io.File
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewRequestScreen(
     navController: NavController,
@@ -70,22 +72,17 @@ fun NewRequestScreen(
 
     Scaffold(
         topBar = {
-            Box(modifier = modifier
-                .fillMaxWidth()
-                .padding(top = 40.dp)) {
-                IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-                Text(
-                    text = "New Requests",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+            CenterAlignedTopAppBar(
+                title = { Text("New Requests", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+            )
         }
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -117,12 +114,8 @@ fun NewRequestScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(items = requests) { claim ->
-                            // Use the Summary Card here for the "Simple" view
-                            RequestSummaryCard(
-                                request = claim,
-                                onClick = { selectedRequest = claim } // This opens the detail dialog
-                            )
+                        items(requests) { claim ->
+                            RequestSummaryCard(request = claim, onClick = { selectedRequest = claim })
                         }
                     }
                 }
@@ -134,8 +127,15 @@ fun NewRequestScreen(
                 request = request,
                 viewModel = viewModel,
                 onDismiss = { selectedRequest = null },
-                onAccept = { /* Handle Accept */ },
-                onReject = { /* Handle Reject */ }
+                onAccept = {
+                    viewModel.processClaim(request, "approve") // Moves to 'approved_claims'
+                    selectedRequest = null
+                },
+                onReject = {
+                    viewModel.processClaim(request, "reject") // Moves to 'rejected_claims'
+                    selectedRequest = null
+                },
+                showActions = true
             )
         }
     }
@@ -171,12 +171,12 @@ fun RequestSummaryCard(request: ClaimRequest, onClick: () -> Unit) {
 @Composable
 fun RequestDetailDialog(
     request: ClaimRequest,
-    viewModel: PostViewModel, // Pass ViewModel to fetch original post info
+    viewModel: PostViewModel,
     onDismiss: () -> Unit,
     onAccept: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    showActions: Boolean = true // Added: Defaults to true for the New Request Screen
 ) {
-    // Fetch the original post to get images and correct answers
     val originalPost = viewModel.getPostById(request.postId)
 
     androidx.compose.ui.window.Dialog(
@@ -203,7 +203,6 @@ fun RequestDetailDialog(
                             color = Color.Gray
                         )
 
-                        // This will now display "from : U0001"
                         Text(
                             text = "from : ${request.requesterId}",
                             fontSize = 16.sp,
@@ -228,7 +227,7 @@ fun RequestDetailDialog(
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
 
-                // 3. Original Post Image (from uploader)
+                // 3. Original Post Image
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -253,7 +252,7 @@ fun RequestDetailDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 4. Verification Part (Uploader vs Requester)
+                // 4. Verification Part
                 Text(text = "Verification:", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -271,46 +270,44 @@ fun RequestDetailDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(text = "${index + 1}. $question", fontWeight = FontWeight.Bold, color = Color.Black)
-
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            // Uploader's expected answer
                             Text(text = "Correct Answer:", fontSize = 12.sp, color = Color.Gray)
                             Text(text = correctAnswer, color = Color(0xFF4CAF50), fontWeight = FontWeight.SemiBold)
-
                             Spacer(modifier = Modifier.height(4.dp))
-
-                            // Requester's submitted answer
                             Text(text = "Requester's Answer:", fontSize = 12.sp, color = Color.Gray)
                             Text(text = requesterAnswer, color = if(correctAnswer.equals(requesterAnswer, true)) Color.Black else Color.Red, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                // MODIFIED SECTION: Only show buttons if showActions is true
+                if (showActions) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = onReject,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(25.dp)
+                        ) { Text("Reject", color = Color.White, fontWeight = FontWeight.Bold) }
 
-                // Bottom Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onReject,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(25.dp)
-                    ) { Text("Reject", color = Color.White, fontWeight = FontWeight.Bold) }
-
-                    Button(
-                        onClick = onAccept,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(25.dp)
-                    ) { Text("Accept", color = Color.White, fontWeight = FontWeight.Bold) }
+                        Button(
+                            onClick = onAccept,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(25.dp)
+                        ) { Text("Accept", color = Color.White, fontWeight = FontWeight.Bold) }
+                    }
+                } else {
+                    // Optional: Add a small padding at the bottom so the last question isn't touching the edge
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
