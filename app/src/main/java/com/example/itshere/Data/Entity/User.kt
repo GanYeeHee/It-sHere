@@ -11,12 +11,8 @@ data class User(
     val firebaseUid: String,
     @ColumnInfo(name = "user_id")
     val userId: String,
-
     val name: String,
-
     val phone: String,
-
     val email: String,
-
     val password: String
 )

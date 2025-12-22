@@ -22,7 +22,6 @@ class UserViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UserState())
     val state: StateFlow<UserState> = _state
-
     fun loadUsers() {
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
@@ -37,7 +36,6 @@ class UserListViewModel(
 
     var users by mutableStateOf<List<User>>(emptyList())
         private set
-
     init {
         viewModelScope.launch {
             users = repository.getAllUsers()

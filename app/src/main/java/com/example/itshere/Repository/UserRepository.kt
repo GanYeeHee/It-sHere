@@ -9,7 +9,6 @@ import javax.inject.Singleton
 class UserRepository @Inject constructor(
     private val database: AppDatabase
 ) {
-
     private val userDao = database.userDao()
 
     suspend fun insertUser(user: User) {
@@ -21,15 +20,12 @@ class UserRepository @Inject constructor(
     suspend fun getAllUsers(): List<User> {
         return userDao.getAll()
     }
-
     suspend fun getUserById(userId: String): User? {
         return userDao.getById(userId)
     }
-
     suspend fun getUserByFirebaseUid(firebaseUid: String): User? {
         return userDao.getByFirebaseUid(firebaseUid)
     }
-
     suspend fun clearUsers() {
         userDao.clear()
     }
