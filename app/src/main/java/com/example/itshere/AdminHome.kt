@@ -65,6 +65,8 @@ fun AdminHome(
 ) {
 
     val requests by viewModel.requests.collectAsState()
+    val approvedCount by viewModel.approvedCount.collectAsState()
+    val rejectedCount by viewModel.rejectedCount.collectAsState()
 
     Column(modifier
         .padding(top = 60.dp),
@@ -156,7 +158,7 @@ fun AdminHome(
                 .clickable {navController.navigate("claimed_screen")}
         ) {
             Text(
-                text = "Claimed",
+                text = if (approvedCount == 0) "Claimed" else "Claimed ($approvedCount)",
                 modifier = Modifier.padding(10.dp),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
@@ -184,7 +186,7 @@ fun AdminHome(
                 .clickable {navController.navigate("rejected_screen")}
         ) {
             Text(
-                text = "Rejected Claims",
+                text = if (rejectedCount == 0) "Rejected Claims" else "Rejected Claims ($rejectedCount)",
                 modifier = Modifier.padding(10.dp),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold

@@ -43,6 +43,10 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val tag = "PostViewModel"
     private val _requests = MutableStateFlow<List<ClaimRequest>>(emptyList())
     val requests: StateFlow<List<ClaimRequest>> = _requests.asStateFlow()
+    private val _approvedCount = MutableStateFlow(0)
+    val approvedCount: StateFlow<Int> = _approvedCount.asStateFlow()
+    private val _rejectedCount = MutableStateFlow(0)
+    val rejectedCount: StateFlow<Int> = _rejectedCount.asStateFlow()
 
 
     init {
@@ -50,6 +54,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
         loadPosts()
         loadFavorites()
         loadClaimRequests()
+        observeApprovedCount()
+        observeRejectedCount()
     }
 
     fun loadPosts() {
@@ -403,6 +409,18 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 Log.e("PostViewModel", "Error processing claim: ${e.message}")
             }
         }
+    }
+    private fun observeApprovedCount() {
+        firestore.collection("approved_claims")
+            .addSnapshotListener { snapshot, _ ->
+                _approvedCount.value = snapshot?.size() ?: 0
+            }
+    }
+    private fun observeRejectedCount() {
+        firestore.collection("rejected_claims")
+            .addSnapshotListener { snapshot, _ ->
+                _rejectedCount.value = snapshot?.size() ?: 0
+            }
     }
 }
 
