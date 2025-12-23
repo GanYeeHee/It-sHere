@@ -5,9 +5,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.itshere.*
 import com.example.itshere.Data.*
 import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.Entity.LocalImage
+import com.example.itshere.Data.Entity.Notification
 import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -53,14 +55,32 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val _rejectedClaims = MutableStateFlow<List<ClaimRequest>>(emptyList())
     val rejectedClaims: StateFlow<List<ClaimRequest>> = _rejectedClaims.asStateFlow()
 
+    // 添加 NotificationManager
+    private lateinit var notificationManager: NotificationManager
 
     init {
-        Log.d(tag, "PostViewModel initialized - LOCAL FILE PATH VERSION")
+        Log.d(tag, "PostViewModel initialized")
+
+        // 初始化 NotificationManager
+        notificationManager = NotificationManager(context)
+
+        // 检查通知权限
+        checkNotificationPermission()
+
         loadPosts()
         loadFavorites()
         loadClaimRequests()
         observeApprovedClaims() // New observer
         observeRejectedClaims() // New observer
+    }
+
+    private fun checkNotificationPermission() {
+        viewModelScope.launch {
+            val enabled = withContext(Dispatchers.Main) {
+                notificationManager.areNotificationsEnabled()
+            }
+            Log.d(tag, "Notifications enabled: $enabled")
+        }
     }
 
     fun loadPosts() {
@@ -222,6 +242,35 @@ class PostViewModel(private val context: Context) : ViewModel() {
 
                 Log.d(tag, "Post saved successfully!")
 
+                try {
+                    val notification = Notification(
+                        postId = postId,
+                        postTitle = title,
+                        postType = if (postType == PostType.FOUND) "FOUND" else "LOST",
+                        postCategory = category,
+                        timestamp = System.currentTimeMillis(),
+                        isRead = false
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        database.notificationDao().insert(notification)
+                    }
+
+                    Log.d(tag, "✓ Notification saved to database")
+
+                    notificationManager.showNewPostNotification(
+                        postId = postId,
+                        postTitle = title,
+                        postType = if (postType == PostType.FOUND) "Found" else "Lost",
+                        category = category
+                    )
+
+                    Log.d(tag, "✓ System notification triggered")
+
+                } catch (e: Exception) {
+                    Log.e(tag, "Failed to create/display notification: ${e.message}", e)
+                }
+
                 val currentPosts = _state.value.posts.toMutableList()
                 currentPosts.add(0, post)
 
@@ -314,6 +363,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
     fun submitClaimRequest(postId: String, postTitle: String, answers: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -368,6 +418,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Determine the destination collection based on button pressed
                 val destination = if (status == "approve") "approved_claims" else "rejected_claims"
                 val batch = firestore.batch()
 
@@ -401,7 +452,15 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 _rejectedCount.value = list.size
             }
     }
+
+    fun testNotification() {
+        viewModelScope.launch {
+            notificationManager.showNewPostNotification(
+                postId = "test_${System.currentTimeMillis()}",
+                postTitle = "Test Notification",
+                postType = "Found",
+                category = "Test"
+            )
+        }
+    }
 }
-
-
-

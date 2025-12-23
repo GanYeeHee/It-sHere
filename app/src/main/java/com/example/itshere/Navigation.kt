@@ -243,9 +243,13 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val postTypeString = backStackEntry.arguments?.getString("postType") ?: "found"
             val postType = if (postTypeString == "lost") PostType.LOST else PostType.FOUND
+            val currentUserPhone = remember {
+            ""
+            }
 
             CreatePostPage(
                 postType = postType,
+                userPhone = currentUserPhone,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -291,8 +295,17 @@ fun AppNavigation() {
             )
         }
 
-        composable("notification"){
-            NotificationsScreen()
+        composable("notifications") {  // Match the name used in HomePage.kt
+            NotificationsScreen(
+                navController = navController
+            )
+        }
+
+        composable("report") {
+            ReportPage(
+                navController = navController,
+                viewModel = sharedPostViewModel  // pass your PostViewModel here
+            )
         }
     }
 }
