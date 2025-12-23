@@ -300,6 +300,13 @@ fun AppNavigation() {
                 navController = navController
             )
         }
+
+        composable("report") {
+            ReportPage(
+                navController = navController,
+                viewModel = sharedPostViewModel  // pass your PostViewModel here
+            )
+        }
     }
 }
 
