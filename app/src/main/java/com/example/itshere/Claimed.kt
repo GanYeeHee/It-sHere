@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,20 +41,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClaimedScreen(navController: NavController, viewModel: PostViewModel) {
-    var approvedList by remember { mutableStateOf<List<ClaimRequest>>(emptyList()) }
+    // 1. Correct: Listening to the shared ViewModel's state
+    val approvedList by viewModel.approvedClaims.collectAsState()
     var selectedRequest by remember { mutableStateOf<ClaimRequest?>(null) }
-
-    LaunchedEffect(Unit) {
-        FirebaseFirestore.getInstance().collection("approved_claims")
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    val items = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
-                    }
-                    approvedList = items
-                }
-            }
-    }
 
     Scaffold(
         topBar = {
@@ -66,20 +56,19 @@ fun ClaimedScreen(navController: NavController, viewModel: PostViewModel) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Background Image logic
+            // Background Image
             Image(
                 painter = painterResource(R.drawable.take),
                 contentDescription = null,
                 modifier = Modifier.size(250.dp).align(Alignment.Center).alpha(0.1f)
             )
 
+            // 2. Correct: Using the list from StateFlow
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
@@ -92,7 +81,7 @@ fun ClaimedScreen(navController: NavController, viewModel: PostViewModel) {
         }
     }
 
-    // Detail Dialog
+    // 3. Detail Dialog - showActions is false so admin can't re-approve/reject
     selectedRequest?.let { request ->
         RequestDetailDialog(
             request = request,

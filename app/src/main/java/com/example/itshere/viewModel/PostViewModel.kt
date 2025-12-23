@@ -47,6 +47,11 @@ class PostViewModel(private val context: Context) : ViewModel() {
     val approvedCount: StateFlow<Int> = _approvedCount.asStateFlow()
     private val _rejectedCount = MutableStateFlow(0)
     val rejectedCount: StateFlow<Int> = _rejectedCount.asStateFlow()
+    private val _approvedClaims = MutableStateFlow<List<ClaimRequest>>(emptyList())
+    val approvedClaims: StateFlow<List<ClaimRequest>> = _approvedClaims.asStateFlow()
+
+    private val _rejectedClaims = MutableStateFlow<List<ClaimRequest>>(emptyList())
+    val rejectedClaims: StateFlow<List<ClaimRequest>> = _rejectedClaims.asStateFlow()
 
 
     init {
@@ -54,8 +59,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
         loadPosts()
         loadFavorites()
         loadClaimRequests()
-        observeApprovedCount()
-        observeRejectedCount()
+        observeApprovedClaims() // New observer
+        observeRejectedClaims() // New observer
     }
 
     fun loadPosts() {
@@ -315,7 +320,11 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val firebaseUid = auth.currentUser?.uid ?: return@launch
                 val roomUser = userRepository.getUserByFirebaseUid(firebaseUid)
 
+                // Create a document reference first to get its unique ID
+                val docRef = firestore.collection("claims").document()
+
                 val newRequest = ClaimRequest(
+                    id = docRef.id, // STORE THE GENERATED ID HERE
                     postId = postId,
                     postTitle = postTitle,
                     requesterId = roomUser?.userId ?: "U_Unknown",
@@ -324,8 +333,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     timestamp = System.currentTimeMillis()
                 )
 
-                firestore.collection("claims").add(newRequest).await()
-                Log.d("PostViewModel", "Claim submitted successfully")
+                docRef.set(newRequest).await() // Use .set instead of .add
+                Log.d("PostViewModel", "Claim submitted with ID: ${docRef.id}")
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Error: ${e.message}")
             }
@@ -335,91 +344,61 @@ class PostViewModel(private val context: Context) : ViewModel() {
     fun loadClaimRequests() {
         firestore.collection("claims")
             .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e("PostViewModel", "Listen failed: ${error.message}")
-                    return@addSnapshotListener
-                }
-
+                if (error != null) return@addSnapshotListener
                 if (snapshot != null) {
-                    // If the collection is cleared, 'documents' will be empty
-                    // Setting this to emptyList() is what clears your screen!
                     val list = snapshot.documents.mapNotNull { doc ->
+                        // THE .copy(id = doc.id) IS CRITICAL
                         doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
                     }
                     _requests.value = list
-                    Log.d("PostViewModel", "Updated requests list. Size: ${list.size}")
                 }
             }
     }
-    fun clearAllRequests() {
-        // 1. We stay on the Main Thread initially to safely clear the UI
-        viewModelScope.launch {
-            try {
-                // 2. Clear the UI list FIRST
-                // This stops the LazyColumn from drawing, so it won't crash when data vanishes
-                _requests.value = emptyList()
 
-                // 3. Switch to the IO thread ONLY for the network call
-                withContext(Dispatchers.IO) {
-                    val collectionRef = firestore.collection("claims")
-                    val snapshot = collectionRef.get().await()
-
-                    if (snapshot.isEmpty) return@withContext
-
-                    val batch = firestore.batch()
-                    for (document in snapshot.documents) {
-                        batch.delete(document.reference)
-                    }
-
-                    // 4. Commit the deletion to the cloud
-                    batch.commit().await()
-                    Log.d("PostViewModel", "Firestore claims cleared successfully")
-                }
-            } catch (e: Exception) {
-                Log.e("PostViewModel", "Clear failed: ${e.message}")
-                // If it fails, reload the data so the UI reflects reality
-                loadClaimRequests()
-            }
-        }
-    }
     fun getPostById(postId: String): PostData? {
         return _state.value.posts.find { it.id == postId }
     }
 
     fun processClaim(request: ClaimRequest, status: String) {
+        // Add a check to prevent empty ID errors
+        if (request.id.isEmpty()) {
+            Log.e("PostViewModel", "Error: Claim Request ID is empty!")
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Determine the destination collection based on button pressed
                 val destination = if (status == "approve") "approved_claims" else "rejected_claims"
+                val batch = firestore.batch()
 
-                // 1. Save a copy to the new collection (Claimed or Rejected)
-                firestore.collection(destination)
-                    .document(request.id) // Keep the same document ID
-                    .set(request)
-                    .await()
+                val newRef = firestore.collection(destination).document(request.id)
+                batch.set(newRef, request)
 
-                // 2. Delete it from the "claims" (New Requests) collection
-                firestore.collection("claims")
-                    .document(request.id)
-                    .delete()
-                    .await()
+                val oldRef = firestore.collection("claims").document(request.id)
+                batch.delete(oldRef)
 
-                Log.d("PostViewModel", "Request ${request.id} moved to $destination")
+                batch.commit().await()
+                Log.d("PostViewModel", "Successfully moved ${request.id} to $destination")
             } catch (e: Exception) {
-                Log.e("PostViewModel", "Error processing claim: ${e.message}")
+                Log.e("PostViewModel", "Firestore Batch Failed: ${e.message}")
             }
         }
     }
-    private fun observeApprovedCount() {
+    private fun observeApprovedClaims() {
         firestore.collection("approved_claims")
             .addSnapshotListener { snapshot, _ ->
-                _approvedCount.value = snapshot?.size() ?: 0
+                val list = snapshot?.documents?.mapNotNull { it.toObject(ClaimRequest::class.java)?.copy(id = it.id) } ?: emptyList()
+                _approvedClaims.value = list
+                _approvedCount.value = list.size
             }
     }
-    private fun observeRejectedCount() {
+
+    private fun observeRejectedClaims() {
         firestore.collection("rejected_claims")
             .addSnapshotListener { snapshot, _ ->
-                _rejectedCount.value = snapshot?.size() ?: 0
+                val list = snapshot?.documents?.mapNotNull { it.toObject(ClaimRequest::class.java)?.copy(id = it.id) } ?: emptyList()
+                _rejectedClaims.value = list
+                _rejectedCount.value = list.size
             }
     }
 }
