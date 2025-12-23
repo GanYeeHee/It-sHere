@@ -295,8 +295,10 @@ fun AppNavigation() {
             )
         }
 
-        composable("notification"){
-            NotificationsScreen()
+        composable("notifications") {  // Match the name used in HomePage.kt
+            NotificationsScreen(
+                navController = navController
+            )
         }
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -35,6 +36,7 @@ import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.PostData
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory
+import com.google.firebase.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -124,23 +126,24 @@ private fun HomePageContent(
             DrawerContent(
                 userDisplayName = displayName,
                 userPhone = displayPhone,
-                onSavedClick = { scope.launch { drawerState.close() }
+                onSavedClick = {
+                    scope.launch { drawerState.close() }
                     navController.navigate("saved")
                 },
                 onNotificationClick = {
-                    navController.navigate("notifications")
                     scope.launch { drawerState.close() }
+                    navController.navigate("notifications")
                 },
                 onAboutUsClick = {
-                    navController.navigate("about_us")
                     scope.launch { drawerState.close() }
+                    navController.navigate("about_us")
                 },
                 onSettingClick = {
-                    navController.navigate("settings")
                     scope.launch { drawerState.close() }
+                    navController.navigate("settings")
                 },
                 onLogoutClick = {
-                    scope.launch { drawerState.close() } // Close drawer first
+                    scope.launch { drawerState.close() }
                     showLogoutDialog = true
                 }
             )
@@ -207,7 +210,7 @@ private fun HomePageContent(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier
-                            .weight(1f) // Take all space except trailing icon
+                            .weight(1f)
                             .height(52.dp),
                         placeholder = { Text("Search posts") },
                         singleLine = true,
@@ -267,7 +270,6 @@ private fun HomePageContent(
                         onStartDateChange = { customStartDate = it },
                         onEndDateChange = { customEndDate = it },
                         onConfirm = {
-                            // TODO: Apply filter logic
                             showDateFilterDialog = false
                         },
                         onDismiss = { showDateFilterDialog = false }
@@ -447,18 +449,28 @@ fun DrawerContent(
     onSettingClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val database = AppDatabase.getInstance(context)
+    val notificationDao = database.notificationDao()
+
+    val viewModel: PostViewModel = viewModel(
+        factory = PostViewModelFactory.getFactory(context)
+    )
+
+    val unreadCount by notificationDao.getUnreadCount()
+        .collectAsState(initial = 0)
+
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp) // Set width instead of fillMax
+        modifier = Modifier.width(300.dp)
     ) {
         // Drawer Header (User Info)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFE0E0E0)) // Light gray background for header
+                .background(Color(0xFFE0E0E0))
                 .padding(24.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Placeholder for User Avatar/Icon (Optional)
             Icon(
                 imageVector = Icons.Default.AccountCircle,
                 contentDescription = "User Avatar",
@@ -482,25 +494,58 @@ fun DrawerContent(
                 fontSize = 14.sp,
                 color = Color.Gray
             )
+
+            if (unreadCount > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = Color(0xFFFF5252),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "$unreadCount unread notification${if (unreadCount > 1) "s" else ""}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
 
         // Navigation Items
         Column(
             modifier = Modifier
-                .weight(1f) // Take up remaining space
+                .weight(1f)
                 .padding(vertical = 8.dp)
         ) {
             NavigationDrawerItem(
                 label = { Text("Saved") },
                 icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
-                selected = false, // Add logic if you want to highlight the current screen
+                selected = false,
                 onClick = onSavedClick,
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
 
             NavigationDrawerItem(
-                label = { Text("Notification") },
-                icon = { Icon(Icons.Default.Notifications, contentDescription = "Notification") },
+                label = {
+                    Text("Notifications")
+                },
+                icon = {
+                    BadgedBox(
+                        badge = {
+                            if (unreadCount > 0) {
+                                Badge {
+                                    Text(
+                                        text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notification")
+                    }
+                },
                 selected = false,
                 onClick = onNotificationClick,
                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -542,6 +587,21 @@ fun DrawerContent(
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (BuildConfig.DEBUG) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        viewModel.testNotification()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50)
+                    )
+                ) {
+                    Text("Test Notification")
+                }
+            }
         }
     }
 }
