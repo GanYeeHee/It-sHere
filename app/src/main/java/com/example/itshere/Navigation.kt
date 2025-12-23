@@ -298,6 +298,13 @@ fun AppNavigation() {
         composable("notification"){
             NotificationsScreen()
         }
+
+        composable("report") {
+            ReportPage(
+                navController = navController,
+                viewModel = sharedPostViewModel  // pass your PostViewModel here
+            )
+        }
     }
 }
 
