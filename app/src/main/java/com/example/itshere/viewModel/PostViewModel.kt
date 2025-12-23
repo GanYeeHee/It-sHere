@@ -5,9 +5,10 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.itshere.*
 import com.example.itshere.Data.*
-import com.example.itshere.Data.AppDatabase
 import com.example.itshere.Data.Entity.LocalImage
+import com.example.itshere.Data.Entity.Notification
 import com.example.itshere.Repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -48,14 +49,32 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val _rejectedCount = MutableStateFlow(0)
     val rejectedCount: StateFlow<Int> = _rejectedCount.asStateFlow()
 
+    // 添加 NotificationManager
+    private lateinit var notificationManager: NotificationManager
 
     init {
-        Log.d(tag, "PostViewModel initialized - LOCAL FILE PATH VERSION")
+        Log.d(tag, "PostViewModel initialized")
+
+        // 初始化 NotificationManager
+        notificationManager = NotificationManager(context)
+
+        // 检查通知权限
+        checkNotificationPermission()
+
         loadPosts()
         loadFavorites()
         loadClaimRequests()
         observeApprovedCount()
         observeRejectedCount()
+    }
+
+    private fun checkNotificationPermission() {
+        viewModelScope.launch {
+            val enabled = withContext(Dispatchers.Main) {
+                notificationManager.areNotificationsEnabled()
+            }
+            Log.d(tag, "Notifications enabled: $enabled")
+        }
     }
 
     fun loadPosts() {
@@ -77,7 +96,6 @@ class PostViewModel(private val context: Context) : ViewModel() {
                             val posts = snapshot?.documents?.mapNotNull { doc ->
                                 try {
                                     val post = doc.toObject(PostData::class.java)?.copy(id = doc.id)
-
                                     post?.copy(isFavorite = _favorites.value.contains(post.id))
                                 } catch (e: Exception) {
                                     Log.e(tag, "Error parsing post: ${e.message}")
@@ -141,7 +159,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
-            Log.d(tag, "Starting createPost - USING LOCAL FILE PATHS")
+            Log.d(tag, "Starting createPost")
             _state.value = _state.value.copy(isLoading = true, uploadProgress = 0f)
 
             try {
@@ -216,6 +234,35 @@ class PostViewModel(private val context: Context) : ViewModel() {
                     .await()
 
                 Log.d(tag, "Post saved successfully!")
+
+                try {
+                    val notification = Notification(
+                        postId = postId,
+                        postTitle = title,
+                        postType = if (postType == PostType.FOUND) "FOUND" else "LOST",
+                        postCategory = category,
+                        timestamp = System.currentTimeMillis(),
+                        isRead = false
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        database.notificationDao().insert(notification)
+                    }
+
+                    Log.d(tag, "✓ Notification saved to database")
+
+                    notificationManager.showNewPostNotification(
+                        postId = postId,
+                        postTitle = title,
+                        postType = if (postType == PostType.FOUND) "Found" else "Lost",
+                        category = category
+                    )
+
+                    Log.d(tag, "✓ System notification triggered")
+
+                } catch (e: Exception) {
+                    Log.e(tag, "Failed to create/display notification: ${e.message}", e)
+                }
 
                 val currentPosts = _state.value.posts.toMutableList()
                 currentPosts.add(0, post)
@@ -309,6 +356,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
     fun submitClaimRequest(postId: String, postTitle: String, answers: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -341,8 +389,6 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 }
 
                 if (snapshot != null) {
-                    // If the collection is cleared, 'documents' will be empty
-                    // Setting this to emptyList() is what clears your screen!
                     val list = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
                     }
@@ -351,15 +397,12 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 }
             }
     }
+
     fun clearAllRequests() {
-        // 1. We stay on the Main Thread initially to safely clear the UI
         viewModelScope.launch {
             try {
-                // 2. Clear the UI list FIRST
-                // This stops the LazyColumn from drawing, so it won't crash when data vanishes
                 _requests.value = emptyList()
 
-                // 3. Switch to the IO thread ONLY for the network call
                 withContext(Dispatchers.IO) {
                     val collectionRef = firestore.collection("claims")
                     val snapshot = collectionRef.get().await()
@@ -371,17 +414,16 @@ class PostViewModel(private val context: Context) : ViewModel() {
                         batch.delete(document.reference)
                     }
 
-                    // 4. Commit the deletion to the cloud
                     batch.commit().await()
                     Log.d("PostViewModel", "Firestore claims cleared successfully")
                 }
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Clear failed: ${e.message}")
-                // If it fails, reload the data so the UI reflects reality
                 loadClaimRequests()
             }
         }
     }
+
     fun getPostById(postId: String): PostData? {
         return _state.value.posts.find { it.id == postId }
     }
@@ -389,16 +431,13 @@ class PostViewModel(private val context: Context) : ViewModel() {
     fun processClaim(request: ClaimRequest, status: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Determine the destination collection based on button pressed
                 val destination = if (status == "approve") "approved_claims" else "rejected_claims"
 
-                // 1. Save a copy to the new collection (Claimed or Rejected)
                 firestore.collection(destination)
-                    .document(request.id) // Keep the same document ID
+                    .document(request.id)
                     .set(request)
                     .await()
 
-                // 2. Delete it from the "claims" (New Requests) collection
                 firestore.collection("claims")
                     .document(request.id)
                     .delete()
@@ -410,19 +449,29 @@ class PostViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
     private fun observeApprovedCount() {
         firestore.collection("approved_claims")
             .addSnapshotListener { snapshot, _ ->
                 _approvedCount.value = snapshot?.size() ?: 0
             }
     }
+
     private fun observeRejectedCount() {
         firestore.collection("rejected_claims")
             .addSnapshotListener { snapshot, _ ->
                 _rejectedCount.value = snapshot?.size() ?: 0
             }
     }
+
+    fun testNotification() {
+        viewModelScope.launch {
+            notificationManager.showNewPostNotification(
+                postId = "test_${System.currentTimeMillis()}",
+                postTitle = "Test Notification",
+                postType = "Found",
+                category = "Test"
+            )
+        }
+    }
 }
-
-
-
