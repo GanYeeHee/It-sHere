@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,33 +40,20 @@ import com.example.itshere.Data.ClaimRequest
 import com.example.itshere.viewModel.PostViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RejectedScreen(navController: NavController, viewModel: PostViewModel) {
-    var rejectedList by remember { mutableStateOf(listOf<ClaimRequest>()) }
+    // Correct: Collect live state from the shared ViewModel
+    val rejectedList by viewModel.rejectedClaims.collectAsState()
     var selectedRequest by remember { mutableStateOf<ClaimRequest?>(null) }
-
-    LaunchedEffect(Unit) {
-        FirebaseFirestore.getInstance().collection("rejected_claims")
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    val items = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(ClaimRequest::class.java)?.copy(id = doc.id)
-                    }
-                    rejectedList = items
-                }
-            }
-    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Rejected", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text("Rejected Claims", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 },
                 navigationIcon = {
-                    // Using your custom back_arrow image
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
@@ -79,27 +67,35 @@ fun RejectedScreen(navController: NavController, viewModel: PostViewModel) {
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)) {
             // Background Image
             Image(
-                painter = painterResource(R.drawable.take),
+                painter = painterResource(R.drawable.stop),
                 contentDescription = null,
                 modifier = Modifier.size(250.dp).align(Alignment.Center).alpha(0.1f)
             )
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(items = rejectedList) { requestItem ->
-                    RequestSummaryCard(
-                        request = requestItem,
-                        onClick = { selectedRequest = requestItem }
-                    )
+            if (rejectedList.isEmpty()) {
+                Text(
+                    "No rejected claims",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Gray
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(items = rejectedList) { requestItem ->
+                        RequestSummaryCard(
+                            request = requestItem,
+                            onClick = { selectedRequest = requestItem }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // Show Full Details
+    // Detail Dialog - showActions = false prevents the admin from trying to re-process it
     selectedRequest?.let { request ->
         RequestDetailDialog(
             request = request,
