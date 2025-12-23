@@ -118,6 +118,7 @@ private fun PostDetailsContent(
 ) {
     var showQuestionDialog by remember { mutableStateOf(false) }
     var showContactDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = Color.White,
@@ -261,11 +262,21 @@ private fun PostDetailsContent(
             onDismiss = { showQuestionDialog = false },
             onSubmit = { answers -> // This is a regular lambda, not a Composable
                 // Now this will work because 'viewModel' is in scope!
+                // 1. Call the ViewModel to submit the data
                 viewModel.submitClaimRequest(
                     postId = post.id,
                     postTitle = post.title,
                     answers = answers
                 )
+
+                // 2. Add the Toast message here
+                android.widget.Toast.makeText(
+                    context,
+                    "Request sent",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+
+                // 3. Close the dialog
                 showQuestionDialog = false
             }
         )
@@ -714,7 +725,7 @@ fun BottomActionSection(
                     .height(56.dp)
             ) {
                 Text(
-                    text = if (postType == "FOUND") "Request for claim" else "Contact User",
+                    text = if (postType == "FOUND") "Send Request" else "Contact User",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
