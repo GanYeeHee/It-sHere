@@ -6,11 +6,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.*
-import com.example.itshere.Data.*
-import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Data.Entity.LocalImage
-import com.example.itshere.Data.Entity.Notification
-import com.example.itshere.Repository.UserRepository
+import com.example.itshere.data.*
+import com.example.itshere.data.AppDatabase
+import com.example.itshere.data.entity.LocalImage
+import com.example.itshere.data.entity.Notification
+import com.example.itshere.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -55,7 +55,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val _rejectedClaims = MutableStateFlow<List<ClaimRequest>>(emptyList())
     val rejectedClaims: StateFlow<List<ClaimRequest>> = _rejectedClaims.asStateFlow()
 
-    private lateinit var notificationManager: NotificationManager
+    //NotificationManager
+    private var notificationManager: NotificationManager
 
     init {
         Log.d(tag, "PostViewModel initialized")
@@ -67,8 +68,8 @@ class PostViewModel(private val context: Context) : ViewModel() {
         loadPosts()
         loadFavorites()
         loadClaimRequests()
-        observeApprovedClaims()
-        observeRejectedClaims()
+        observeApprovedClaims() // New observer
+        observeRejectedClaims() // New observer
     }
 
     private fun checkNotificationPermission() {
@@ -371,7 +372,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val docRef = firestore.collection("claims").document()
 
                 val newRequest = ClaimRequest(
-                    id = docRef.id,
+                    id = docRef.id, // STORE THE GENERATED ID HERE
                     postId = postId,
                     postTitle = postTitle,
                     requesterId = roomUser?.userId ?: "U_Unknown",

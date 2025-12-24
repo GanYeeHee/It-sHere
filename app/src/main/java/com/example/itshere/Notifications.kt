@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Data.Entity.Notification
+import com.example.itshere.data.AppDatabase
+import com.example.itshere.data.entity.Notification
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

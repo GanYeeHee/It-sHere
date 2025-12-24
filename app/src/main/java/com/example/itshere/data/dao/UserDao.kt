@@ -1,11 +1,11 @@
-package com.example.itshere.Data.Dao
+package com.example.itshere.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.itshere.Data.Entity.User
+import com.example.itshere.data.entity.User
 
 @Dao
 interface UserDao {

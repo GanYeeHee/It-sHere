@@ -38,9 +38,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Data.PostType
-import com.example.itshere.Repository.UserRepository
+import com.example.itshere.data.AppDatabase
+import com.example.itshere.data.PostType
+import com.example.itshere.repository.UserRepository
 import com.example.itshere.viewModel.LoginViewModel
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory

@@ -5,15 +5,14 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Data.AppDatabase
+import com.example.itshere.data.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.example.itshere.Data.Entity.Admin
-import com.example.itshere.Repository.UserRepository
+import com.example.itshere.data.entity.Admin
 
 // --- CONSTANTS FOR INITIAL SEEDING & CHECKING ---
 private const val INITIAL_ADMIN_EMAIL = "admin12"
@@ -86,7 +85,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(
-        context: Context,
         onSuccess: () -> Unit,
         onEmailNotVerified: () -> Unit,
         onError: (String) -> Unit
@@ -139,7 +137,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 println("Error during Room Admin check: ${e.message}")
             }
+            // --- END ADMIN ROOM CHECK ---
 
+
+            // --- 2. EXISTING FIREBASE LOGIN (FALLBACK) ---
             try {
                 auth.signInWithEmailAndPassword(currentState.email, currentState.password)
                     .addOnCompleteListener { task ->
@@ -151,6 +152,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                             if (firebaseUser?.isEmailVerified == true) {
                                 _state.value = currentState.copy(isLoading = false)
 
+                                // Just navigate, NO database write
                                 viewModelScope.launch(Dispatchers.Main) {
                                     onSuccess()
                                 }

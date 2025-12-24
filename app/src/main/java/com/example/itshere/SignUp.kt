@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -71,7 +73,7 @@ fun SignUpScreen(
             modifier = Modifier.align(Alignment.TopStart)
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.Black
             )
@@ -186,8 +188,10 @@ fun SignUpScreen(
                     shape = RoundedCornerShape(20.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Unspecified,
+                        autoCorrectEnabled = false,
                         keyboardType = KeyboardType.Phone,
-                        autoCorrect = false
+                        imeAction = ImeAction.Unspecified
                     ),
                     isError = state.phoneError != null,
                     enabled = !state.isLoading

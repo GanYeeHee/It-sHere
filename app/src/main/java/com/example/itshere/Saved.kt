@@ -1,7 +1,6 @@
 // SavedScreen.kt
 package com.example.itshere
 
-import android.R.attr.onClick
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -67,7 +65,7 @@ fun SavedScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.Black
                         )
@@ -146,7 +144,7 @@ fun SavedScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavedPostCard(
-    post: com.example.itshere.Data.PostData,
+    post: com.example.itshere.data.PostData,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {

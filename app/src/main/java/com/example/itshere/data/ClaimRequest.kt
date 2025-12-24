@@ -1,4 +1,4 @@
-package com.example.itshere.Data
+package com.example.itshere.data
 
 data class ClaimRequest(
     val id: String = "",
