@@ -1,6 +1,7 @@
 package com.example.itshere.viewModel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itshere.data.entity.User
@@ -130,6 +131,18 @@ class SignUpViewModel : ViewModel() {
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             val firebaseUser = auth.currentUser
+
+                            // Update the user's display name in Firebase Auth
+                            val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
+                                displayName = currentState.name
+                            }
+
+                            firebaseUser?.updateProfile(profileUpdates)?.addOnCompleteListener { profileTask ->
+                                if (profileTask.isSuccessful) {
+                                    Log.d("SignUp", "User profile updated with name: ${currentState.name}")
+                                }
+                            }
+
                             val firebaseUid = firebaseUser?.uid ?: ""
 
                             if (firebaseUser == null) {
