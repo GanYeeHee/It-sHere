@@ -85,7 +85,7 @@ fun AdminHome(
             }
 
             Greeting(
-                name = "Admin1010",
+                name = "Admin1231",
                 modifier = modifier.align(Alignment.Bottom)
             )
         }
