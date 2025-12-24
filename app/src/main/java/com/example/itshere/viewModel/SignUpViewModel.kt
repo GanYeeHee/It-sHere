@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.itshere.data.entity.User
 import com.example.itshere.data.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,7 @@ class SignUpViewModel : ViewModel() {
     val state: StateFlow<SignUpState> = _state
 
     private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
 
     fun onNameChange(name: String) {
         _state.value = _state.value.copy(
@@ -131,6 +133,7 @@ class SignUpViewModel : ViewModel() {
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             val firebaseUser = auth.currentUser
+                            val firebaseUid = firebaseUser?.uid ?: ""
 
                             // Update the user's display name in Firebase Auth
                             val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
@@ -143,18 +146,32 @@ class SignUpViewModel : ViewModel() {
                                 }
                             }
 
-                            val firebaseUid = firebaseUser?.uid ?: ""
-
                             if (firebaseUser == null) {
                                 _state.value = _state.value.copy(isLoading = false)
                                 onError("User creation failed")
                                 return@addOnCompleteListener
                             }
+                            // 2. Prepare user data for Firestore
+                            val userMap = hashMapOf(
+                                "firebaseUid" to firebaseUid,
+                                "name" to currentState.name,
+                                "phone" to currentState.phone,
+                                "email" to currentState.email,
+                                "timestamp" to System.currentTimeMillis()
+                            )
 
+                            firestore.collection("users")
+                                .document(firebaseUid)
+                                .set(userMap)
+                                .addOnSuccessListener {
+                                    Log.d("SignUp", "User data successfully saved to Firestore")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("SignUp", "Error saving to Firestore", e)
+                                }
 
                             viewModelScope.launch(Dispatchers.IO) {
                                 val userDao = AppDatabase.getInstance(context).userDao()
-
                                 val lastCode = userDao.getLastUserCode()   // you need to add this DAO method
                                 val newUserCode = generateNextUserCode(lastCode)
 
