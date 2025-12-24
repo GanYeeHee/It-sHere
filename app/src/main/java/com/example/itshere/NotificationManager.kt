@@ -57,8 +57,8 @@ class NotificationManager(private val context: Context) {
             val notificationId = postId.hashCode() and 0xfffffff
 
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification) // 创建这个图标
-                .setContentTitle("📢 New ${postType} Post!")
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle("New ${postType} Post!")
                 .setContentText(postTitle)
                 .setStyle(
                     NotificationCompat.BigTextStyle()
@@ -77,9 +77,9 @@ class NotificationManager(private val context: Context) {
             with(NotificationManagerCompat.from(context)) {
                 if (areNotificationsEnabled()) {
                     notify(notificationId, builder.build())
-                    println("✅ Notification shown for post: $postTitle")
+                    println("Notification shown for post: $postTitle")
                 } else {
-                    println("❌ Notifications not enabled")
+                    println("Notifications not enabled")
                 }
             }
         }

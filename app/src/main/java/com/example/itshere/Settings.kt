@@ -55,7 +55,7 @@ fun SettingsScreen(
             sharedPreferences.edit().putBoolean("notifications_enabled", true).apply()
             showTestNotification(
                 context = context,
-                title = "🔔 Notifications Enabled",
+                title = "Notifications Enabled",
                 message = "You will now receive notifications for your items"
             )
         } else {
@@ -250,7 +250,7 @@ fun SettingsScreen(
                                                 .apply()
                                             showTestNotification(
                                                 context = context,
-                                                title = "🔔 Notifications Enabled",
+                                                title = "Notifications Enabled",
                                                 message = "You will now receive notifications for your items"
                                             )
                                         } else {
@@ -266,7 +266,7 @@ fun SettingsScreen(
                                             .apply()
                                         showTestNotification(
                                             context = context,
-                                            title = "🔕 Notifications Disabled",
+                                            title = "Notifications Disabled",
                                             message = "You won't receive any notifications"
                                         )
                                     }
@@ -279,7 +279,7 @@ fun SettingsScreen(
 
                                     showTestNotification(
                                         context = context,
-                                        title = if (newValue) "🔔 Notifications Enabled" else "🔕 Notifications Disabled",
+                                        title = if (newValue) "Notifications Enabled" else "Notifications Disabled",
                                         message = if (newValue)
                                             "You will now receive notifications for your items"
                                         else
@@ -426,11 +426,11 @@ private fun showTestNotification(context: Context, title: String, message: Strin
         notificationManager.notify(notificationId, notificationBuilder.build())
 
         // Log output
-        println("✅ Notification sent: $title")
-        println("📱 Channel ID: $channelId")
+        println("Notification sent: $title")
+        println("Channel ID: $channelId")
 
     } catch (e: Exception) {
-        println("❌ Error sending notification: ${e.message}")
+        println("Error sending notification: ${e.message}")
         e.printStackTrace()
     }
 }

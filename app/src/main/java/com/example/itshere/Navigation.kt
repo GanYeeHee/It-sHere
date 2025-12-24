@@ -133,7 +133,7 @@ fun AppNavigation() {
 
         composable("admin_home") {
             AdminHomeScreenWrapper(
-                navController = navController, // ✅ SAME controller
+                navController = navController,
                 viewModel = sharedPostViewModel,
                 onLogout = {
                     auth.signOut()
@@ -310,7 +310,6 @@ fun AppNavigation() {
     }
 }
 
-// Placeholder for the sliding sidebar content (Replace with your actual drawer Composable later)
 @Composable
 fun AdminDrawerContent(
     onLogout: () -> Unit,

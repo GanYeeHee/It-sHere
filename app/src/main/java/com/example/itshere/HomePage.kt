@@ -302,7 +302,6 @@ private fun HomePageContent(
                         }
                     }
 
-                    // ⭐ Date filter using DD/MM/YYYY
                     if (
                         selectedDateOption == "Custom" &&
                         customStartDate.isNotEmpty() &&

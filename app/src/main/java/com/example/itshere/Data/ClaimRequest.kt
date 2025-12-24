@@ -4,8 +4,8 @@ data class ClaimRequest(
     val id: String = "",
     val postId: String = "",
     val postTitle: String = "",
-    val requesterId: String = "",   // Must have = ""
-    val requesterName: String = "", // Must have = ""
+    val requesterId: String = "",
+    val requesterName: String = "",
     val answers: List<String> = emptyList(),
     val timestamp: Long = System.currentTimeMillis()
 )

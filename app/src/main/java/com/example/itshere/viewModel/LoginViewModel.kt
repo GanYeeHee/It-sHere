@@ -22,8 +22,6 @@ private const val INITIAL_ADMIN_ID = "ADMIN25" // The unique ID stored in the da
 
 // Masked value for display in App Inspection:
 private const val INITIAL_ADMIN_PASSWORD_MASKED = "*****12"
-// ------------------------------------------------
-
 
 data class LoginState(
     val email: String = "",
@@ -62,12 +60,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         password = INITIAL_ADMIN_PASSWORD_MASKED // Storing the masked string
                     )
                     adminDao.insertAdmin(initialAdmin)
-                    println("✅ Admin credentials INSERTED into Room. ID: ADMIN25, Password: masked.")
+                    println("Admin credentials INSERTED into Room. ID: ADMIN25, Password: masked.")
                 } else {
                     println("Admin credentials already exist in Room.")
                 }
             } catch (e: Exception) {
-                println("❌ Error seeding admin data: ${e.message}")
+                println("Error seeding admin data: ${e.message}")
             }
         }
     }
@@ -126,10 +124,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (roomAdmin != null &&
                     enteredEmail == roomAdmin.email &&
-                    enteredPassword == INITIAL_ADMIN_PASSWORD) { // <-- Checks against the ACTUAL password
+                    enteredPassword == INITIAL_ADMIN_PASSWORD) {
 
                     // Admin Login Success
-                    println("✅ Admin logged in successfully from Room check.")
+                    println("Admin logged in successfully from Room check.")
                     _state.value = currentState.copy(isLoading = false)
 
                     // FIXED: Launching onSuccess on the Main Dispatcher safely
@@ -139,12 +137,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch // EXIT
                 }
             } catch (e: Exception) {
-                println("❌ Error during Room Admin check: ${e.message}")
+                println("Error during Room Admin check: ${e.message}")
             }
-            // --- END ADMIN ROOM CHECK ---
 
-
-            // --- 2. EXISTING FIREBASE LOGIN (FALLBACK) ---
             try {
                 auth.signInWithEmailAndPassword(currentState.email, currentState.password)
                     .addOnCompleteListener { task ->
@@ -156,7 +151,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                             if (firebaseUser?.isEmailVerified == true) {
                                 _state.value = currentState.copy(isLoading = false)
 
-                                // ✅ Just navigate, NO database write
                                 viewModelScope.launch(Dispatchers.Main) {
                                     onSuccess()
                                 }
@@ -176,7 +170,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false)
                 val errorMsg = e.message ?: "Login failed"
-                println("❌ Login exception: $errorMsg")
+                println("Login exception: $errorMsg")
                 onError(errorMsg)
             }
         }

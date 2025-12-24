@@ -145,7 +145,7 @@ class SignUpViewModel : ViewModel() {
                             viewModelScope.launch(Dispatchers.IO) {
                                 val userDao = AppDatabase.getInstance(context).userDao()
 
-                                val lastCode = userDao.getLastUserCode()   // you need to add this DAO method
+                                val lastCode = userDao.getLastUserCode()
                                 val newUserCode = generateNextUserCode(lastCode)
 
                                 val userEntity = User(

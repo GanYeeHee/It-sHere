@@ -55,23 +55,20 @@ class PostViewModel(private val context: Context) : ViewModel() {
     private val _rejectedClaims = MutableStateFlow<List<ClaimRequest>>(emptyList())
     val rejectedClaims: StateFlow<List<ClaimRequest>> = _rejectedClaims.asStateFlow()
 
-    // 添加 NotificationManager
     private lateinit var notificationManager: NotificationManager
 
     init {
         Log.d(tag, "PostViewModel initialized")
 
-        // 初始化 NotificationManager
         notificationManager = NotificationManager(context)
 
-        // 检查通知权限
         checkNotificationPermission()
 
         loadPosts()
         loadFavorites()
         loadClaimRequests()
-        observeApprovedClaims() // New observer
-        observeRejectedClaims() // New observer
+        observeApprovedClaims()
+        observeRejectedClaims()
     }
 
     private fun checkNotificationPermission() {
@@ -374,7 +371,7 @@ class PostViewModel(private val context: Context) : ViewModel() {
                 val docRef = firestore.collection("claims").document()
 
                 val newRequest = ClaimRequest(
-                    id = docRef.id, // STORE THE GENERATED ID HERE
+                    id = docRef.id,
                     postId = postId,
                     postTitle = postTitle,
                     requesterId = roomUser?.userId ?: "U_Unknown",
