@@ -1,17 +1,17 @@
-package com.example.itshere.Data
+package com.example.itshere.data
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.itshere.Data.Dao.AdminDao
-import com.example.itshere.Data.Dao.LocalImageDao
-import com.example.itshere.Data.Dao.NotificationDao
-import com.example.itshere.Data.Dao.UserDao
-import com.example.itshere.Data.Entity.Admin
-import com.example.itshere.Data.Entity.LocalImage
-import com.example.itshere.Data.Entity.Notification
-import com.example.itshere.Data.Entity.User
+import com.example.itshere.data.dao.AdminDao
+import com.example.itshere.data.dao.LocalImageDao
+import com.example.itshere.data.dao.NotificationDao
+import com.example.itshere.data.dao.UserDao
+import com.example.itshere.data.entity.Admin
+import com.example.itshere.data.entity.LocalImage
+import com.example.itshere.data.entity.Notification
+import com.example.itshere.data.entity.User
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.internal.synchronized
 

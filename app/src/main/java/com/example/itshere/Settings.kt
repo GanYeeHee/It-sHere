@@ -3,7 +3,6 @@ package com.example.itshere
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.*
@@ -26,6 +25,7 @@ import android.Manifest
 import android.preference.PreferenceManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.HorizontalDivider
 import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,9 +172,9 @@ fun SettingsScreen(
                         )
                     }
 
-                    Divider(
-                        color = Color(0xFFF0F0F0),
-                        thickness = 1.dp
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = Color(0xFFF0F0F0)
                     )
                 }
             }
@@ -296,9 +296,9 @@ fun SettingsScreen(
                         )
                     }
 
-                    Divider(
-                        color = Color(0xFFF0F0F0),
-                        thickness = 1.dp
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = Color(0xFFF0F0F0)
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -359,9 +359,9 @@ fun SettingsScreen(
                         )
                     }
 
-                    Divider(
-                        color = Color(0xFFF0F0F0),
-                        thickness = 1.dp
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = Color(0xFFF0F0F0)
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))

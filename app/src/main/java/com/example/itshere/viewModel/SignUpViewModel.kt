@@ -1,14 +1,11 @@
 package com.example.itshere.viewModel
 
 import android.content.Context
-import android.util.Log.e
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Data.Entity.User
-import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Repository.UserRepository
+import com.example.itshere.data.entity.User
+import com.example.itshere.data.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

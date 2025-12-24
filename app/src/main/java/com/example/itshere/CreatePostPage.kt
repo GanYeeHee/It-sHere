@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,9 +42,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.example.itshere.Data.ImageItem
-import com.example.itshere.Data.PostType
-import com.example.itshere.Data.QuestionAnswer
+import com.example.itshere.data.ImageItem
+import com.example.itshere.data.PostType
+import com.example.itshere.data.QuestionAnswer
 import com.example.itshere.viewModel.PostViewModel
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -134,7 +135,7 @@ fun CreatePostPage(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.Black
                         )
