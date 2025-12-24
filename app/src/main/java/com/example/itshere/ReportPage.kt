@@ -42,7 +42,8 @@ fun ReportPage(navController: NavController, viewModel: PostViewModel) {
     var selectedReportType by remember { mutableStateOf("Total Report") }
 
     val state by viewModel.state.collectAsState()
-    val approvedList by viewModel.requests.collectAsState() // for claimed items
+    val approvedClaims by viewModel.approvedClaims.collectAsState()
+
 
     // Filter posts based on date
     val filteredPosts = remember(state.posts, selectedOption, customStartDate, customEndDate) {
@@ -57,11 +58,8 @@ fun ReportPage(navController: NavController, viewModel: PostViewModel) {
     val foundPosts = filteredPosts.filter { it.postType == "FOUND" }
     val lostPosts = filteredPosts.filter { it.postType == "LOST" }
 
-    val approvedClaims = approvedList.filter { claim ->
-        if (selectedOption == "Custom" && customStartDate.isNotEmpty() && customEndDate.isNotEmpty()) {
-            val postDate = filteredPosts.find { it.id == claim.postId }?.timestampToDateString() ?: ""
-            postDate >= customStartDate && postDate <= customEndDate
-        } else true
+    val approvedClaimedPosts = approvedClaims.mapNotNull { claim ->
+        filteredPosts.find { post -> post.id == claim.postId }
     }
 
     Scaffold(
@@ -178,9 +176,7 @@ fun ReportPage(navController: NavController, viewModel: PostViewModel) {
                         ReportSection(
                             title = "Claimed Item",
                             titleColor = Color(0xFF4CAF50),
-                            posts = approvedClaims.mapNotNull { claim ->
-                                filteredPosts.find { it.id == claim.postId }
-                            },
+                            posts = approvedClaimedPosts,
                             showSubtitleBox = true
                         )
                     }
@@ -208,7 +204,7 @@ fun ReportPage(navController: NavController, viewModel: PostViewModel) {
                         selectedReportType,
                         foundPosts,
                         lostPosts,
-                        approvedClaims.mapNotNull { claim -> filteredPosts.find { it.id == claim.postId } },
+                        approvedClaimedPosts,
                         filteredPosts
                     )
                 },
@@ -349,76 +345,6 @@ fun CategoryReportSection(category: String, foundPosts: List<PostData>, lostPost
     }
 }
 
-// PDF helpers
-fun generatePdfReport(
-    reportType: String,
-    foundPosts: List<PostData>,
-    lostPosts: List<PostData>,
-    claimedPosts: List<PostData>,
-    allPosts: List<PostData>
-): String {
-    // For simplicity, return CSV-style string (can be replaced with actual PDF generation)
-    val builder = StringBuilder()
-    builder.append("$reportType\n\n")
-
-    fun appendSection(title: String, posts: List<PostData>) {
-        builder.append("$title\n")
-        val categoryCounts = posts.groupingBy { it.category }.eachCount()
-        categoryCounts.forEach { (cat, count) ->
-            builder.append("$cat - $count\n")
-        }
-        builder.append("Total - ${posts.size}\n\n")
-    }
-
-    when (reportType) {
-        "Total Report" -> {
-            appendSection("Found Item", foundPosts)
-            appendSection("Lost Item", lostPosts)
-            appendSection("Claimed Item", claimedPosts)
-        }
-        "Found Report" -> appendSection("Found Item", foundPosts)
-        "Lost Report" -> appendSection("Lost Item", lostPosts)
-        "Category Report" -> {
-            val categories = allPosts.map { it.category }.distinct()
-            categories.forEach { category ->
-                val fPosts = allPosts.filter { it.category == category && it.postType == "FOUND" }
-                val lPosts = allPosts.filter { it.category == category && it.postType == "LOST" }
-                builder.append("$category\n")
-                builder.append("Found - ${fPosts.size}\n")
-                builder.append("Lost - ${lPosts.size}\n")
-                builder.append("Total - ${fPosts.size + lPosts.size}\n\n")
-            }
-        }
-    }
-
-    return builder.toString()
-}
-
-fun savePdfToDownloads(context: Context, pdfData: String, fileName: String = "report.pdf") {
-    try {
-        val resolver = context.contentResolver
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
-        }
-
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-        if (uri != null) {
-            resolver.openOutputStream(uri).use { stream: OutputStream? ->
-                stream?.write(pdfData.toByteArray())
-            }
-            Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(context, "Failed to save PDF", Toast.LENGTH_LONG).show()
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(context, "Error saving PDF: ${e.message}", Toast.LENGTH_LONG).show()
-    }
-}
 
 fun savePdfReport(
     context: Context,

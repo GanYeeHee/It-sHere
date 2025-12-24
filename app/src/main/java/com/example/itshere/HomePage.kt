@@ -276,33 +276,47 @@ private fun HomePageContent(
                 }
 
                 // Filter posts based on search query, category, and date
-                val filteredPosts = remember(state.posts, searchQuery, selectedCategory, selectedDateOption, customStartDate, customEndDate) {
-                    val lowercaseQuery = searchQuery.lowercase()
-
-                    val searchedPosts = if (lowercaseQuery.isEmpty()) {
+                val filteredPosts = remember(
+                    state.posts,
+                    searchQuery,
+                    selectedCategory,
+                    selectedDateOption,
+                    customStartDate,
+                    customEndDate
+                ) {
+                    val searchedPosts = if (searchQuery.isEmpty()) {
                         state.posts
                     } else {
                         state.posts.filter { post ->
-                            post.title.lowercase().contains(lowercaseQuery) ||
-                                    post.description?.lowercase()?.contains(lowercaseQuery) == true ||
-                                    post.category.lowercase().contains(lowercaseQuery) ||
-                                    post.postType.lowercase().contains(lowercaseQuery)
+                            post.title.contains(searchQuery, ignoreCase = true) ||
+                                    post.description?.contains(searchQuery, ignoreCase = true) == true
                         }
                     }
 
                     val categoryFiltered = if (selectedCategory == "All") {
                         searchedPosts
                     } else {
-                        searchedPosts.filter { post ->
-                            post.category.contains(selectedCategory, ignoreCase = true)
+                        searchedPosts.filter {
+                            it.category.equals(selectedCategory, ignoreCase = true)
                         }
                     }
 
-                    // Filter by date if Custom selected
-                    if (selectedDateOption == "Custom" && customStartDate.isNotEmpty() && customEndDate.isNotEmpty()) {
-                        categoryFiltered.filter { post ->
-                            val postDate = post.timestampToDateString()
-                            postDate >= customStartDate && postDate <= customEndDate
+                    // ⭐ Date filter using DD/MM/YYYY
+                    if (
+                        selectedDateOption == "Custom" &&
+                        customStartDate.isNotEmpty() &&
+                        customEndDate.isNotEmpty()
+                    ) {
+                        val startTs = customStartDate.ddMMyyyyToTimestamp()
+                        val endTs = customEndDate.ddMMyyyyToTimestamp()
+
+                        if (startTs == null || endTs == null) {
+                            categoryFiltered
+                        } else {
+                            categoryFiltered.filter { post ->
+                                val postTs = post.date.ddMMyyyyToTimestamp()
+                                postTs != null && postTs in startTs..endTs
+                            }
                         }
                     } else {
                         categoryFiltered
@@ -850,7 +864,9 @@ fun DateFilterDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        onStartDateChange("$year-${month + 1}-$dayOfMonth")
+                                        onStartDateChange(
+                                            "%02d/%02d/%04d".format(dayOfMonth, month + 1, year)
+                                        )
                                     },
                                     today.get(Calendar.YEAR),
                                     today.get(Calendar.MONTH),
@@ -877,7 +893,9 @@ fun DateFilterDialog(
                                 DatePickerDialog(
                                     context,
                                     { _, year, month, dayOfMonth ->
-                                        onEndDateChange("$year-${month + 1}-$dayOfMonth")
+                                        onEndDateChange(
+                                            "%02d/%02d/%04d".format(dayOfMonth, month + 1, year)
+                                        )
                                     },
                                     today.get(Calendar.YEAR),
                                     today.get(Calendar.MONTH),
@@ -913,6 +931,29 @@ fun PostData.timestampToDateString(): String {
     val day = cal.get(Calendar.DAY_OF_MONTH)
     // Format as "YYYY-MM-DD" so it can be compared lexicographically
     return "%04d-%02d-%02d".format(year, month, day)
+}
+
+fun String.ddMMyyyyToTimestamp(): Long? {
+    return try {
+        val parts = this.split("/")
+        if (parts.size != 3) return null
+
+        val day = parts[0].toInt()
+        val month = parts[1].toInt() - 1 // Calendar months start from 0
+        val year = parts[2].toInt()
+
+        Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, day)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    } catch (e: Exception) {
+        null
+    }
 }
 
 @Preview(showBackground = true)
