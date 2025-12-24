@@ -271,7 +271,6 @@ fun LoginScreen(
                         } else {
                             // proceed firebase Login
                             viewModel.login(
-                                context = context,
                                 onSuccess = onLoginSuccess,
                                 onEmailNotVerified = { showEmailNotVerifiedDialog = true },
                                 onError = { error ->

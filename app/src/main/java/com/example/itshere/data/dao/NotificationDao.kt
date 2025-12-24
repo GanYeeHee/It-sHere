@@ -1,4 +1,4 @@
-package com.example.itshere.Data.Dao
+package com.example.itshere.data.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Delete
-import com.example.itshere.Data.Entity.Notification
+import com.example.itshere.data.entity.Notification
 import kotlinx.coroutines.flow.Flow
 
 @Dao

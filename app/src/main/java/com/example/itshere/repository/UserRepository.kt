@@ -1,7 +1,7 @@
-package com.example.itshere.Repository
+package com.example.itshere.repository
 
-import com.example.itshere.Data.AppDatabase
-import com.example.itshere.Data.Entity.User
+import com.example.itshere.data.AppDatabase
+import com.example.itshere.data.entity.User
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,12 +11,6 @@ class UserRepository @Inject constructor(
 ) {
     private val userDao = database.userDao()
 
-    suspend fun insertUser(user: User) {
-        userDao.insert(user)
-    }
-    suspend fun deleteUser(user: User) {
-        userDao.delete(user)
-    }
     suspend fun getAllUsers(): List<User> {
         return userDao.getAll()
     }
@@ -26,7 +20,5 @@ class UserRepository @Inject constructor(
     suspend fun getUserByFirebaseUid(firebaseUid: String): User? {
         return userDao.getByFirebaseUid(firebaseUid)
     }
-    suspend fun clearUsers() {
-        userDao.clear()
-    }
+
 }

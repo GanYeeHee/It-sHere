@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
-import com.example.itshere.Data.PostData
+import com.example.itshere.data.PostData
 import com.example.itshere.viewModel.PostViewModel
 import com.example.itshere.viewModel.PostViewModelFactory
 import java.io.File
@@ -270,10 +270,10 @@ private fun PostDetailsContent(
                 )
 
                 // 2. Add the Toast message here
-                android.widget.Toast.makeText(
+                Toast.makeText(
                     context,
                     "Request sent",
-                    android.widget.Toast.LENGTH_SHORT
+                    Toast.LENGTH_SHORT
                 ).show()
 
                 // 3. Close the dialog

@@ -5,21 +5,19 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itshere.Data.AppDatabase
+import com.example.itshere.data.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.example.itshere.Data.Entity.Admin
-import com.example.itshere.Repository.UserRepository
+import com.example.itshere.data.entity.Admin
 
 // --- CONSTANTS FOR INITIAL SEEDING & CHECKING ---
 private const val INITIAL_ADMIN_EMAIL = "admin12"
 private const val INITIAL_ADMIN_PASSWORD = "admin12" // The actual password for login check
 private const val INITIAL_ADMIN_ID = "ADMIN25" // The unique ID stored in the database
-
 // Masked value for display in App Inspection:
 private const val INITIAL_ADMIN_PASSWORD_MASKED = "*****12"
 // ------------------------------------------------
@@ -62,12 +60,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         password = INITIAL_ADMIN_PASSWORD_MASKED // Storing the masked string
                     )
                     adminDao.insertAdmin(initialAdmin)
-                    println("✅ Admin credentials INSERTED into Room. ID: ADMIN25, Password: masked.")
+                    println("Admin credentials INSERTED into Room. ID: ADMIN25, Password: masked.")
                 } else {
                     println("Admin credentials already exist in Room.")
                 }
             } catch (e: Exception) {
-                println("❌ Error seeding admin data: ${e.message}")
+                println("Error seeding admin data: ${e.message}")
             }
         }
     }
@@ -88,7 +86,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(
-        context: Context,
         onSuccess: () -> Unit,
         onEmailNotVerified: () -> Unit,
         onError: (String) -> Unit
@@ -129,7 +126,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     enteredPassword == INITIAL_ADMIN_PASSWORD) { // <-- Checks against the ACTUAL password
 
                     // Admin Login Success
-                    println("✅ Admin logged in successfully from Room check.")
+                    println("Admin logged in successfully from Room check.")
                     _state.value = currentState.copy(isLoading = false)
 
                     // FIXED: Launching onSuccess on the Main Dispatcher safely
@@ -139,7 +136,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch // EXIT
                 }
             } catch (e: Exception) {
-                println("❌ Error during Room Admin check: ${e.message}")
+                println("Error during Room Admin check: ${e.message}")
             }
             // --- END ADMIN ROOM CHECK ---
 
@@ -156,7 +153,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                             if (firebaseUser?.isEmailVerified == true) {
                                 _state.value = currentState.copy(isLoading = false)
 
-                                // ✅ Just navigate, NO database write
+                                // Just navigate, NO database write
                                 viewModelScope.launch(Dispatchers.Main) {
                                     onSuccess()
                                 }
@@ -176,7 +173,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false)
                 val errorMsg = e.message ?: "Login failed"
-                println("❌ Login exception: $errorMsg")
+                println("Login exception: $errorMsg")
                 onError(errorMsg)
             }
         }

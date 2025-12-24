@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.itshere.Data.ClaimRequest
+import com.example.itshere.data.ClaimRequest
 import com.example.itshere.viewModel.PostViewModel
 import java.io.File
 
@@ -84,7 +84,7 @@ fun NewRequestScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
